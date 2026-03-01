@@ -1,0 +1,20 @@
+node_modules
+.pnpm-store
+.turbo
+.env
+.env.*
+*.log
+.DS_Store
+
+# Build artifacts
+dist
+build
+apps/server/public
+
+# Database
+apps/server/data/*.db
+apps/server/data/*.db-*
+apps/server/data/api-token
+
+# Vite
+apps/web/.vite
