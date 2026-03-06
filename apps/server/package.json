@@ -12,7 +12,9 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "tsc -p tsconfig.json --noEmit",
     "db:migrate": "tsx src/db/migrate.ts",
-    "db:generate": "echo 'Use SQL migrations under src/db/migrations'"
+    "db:generate": "echo 'Use SQL migrations under src/db/migrations'",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@fastify/cors": "^10.0.2",
@@ -29,7 +31,9 @@
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.12",
     "@types/node": "^22.10.5",
+    "@vitest/coverage-v8": "^4.0.18",
     "tsx": "^4.19.2",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "vitest": "^4.0.18"
   }
 }

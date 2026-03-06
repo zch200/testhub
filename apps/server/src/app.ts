@@ -21,8 +21,12 @@ import { getApiToken, getBootId, verifyApiToken } from "./utils/auth";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-export function buildApp() {
-  const app = fastify({ logger: true });
+export interface BuildAppOptions {
+  logger?: boolean;
+}
+
+export function buildApp(options?: BuildAppOptions) {
+  const app = fastify({ logger: options?.logger ?? true });
 
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);

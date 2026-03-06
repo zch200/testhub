@@ -50,6 +50,8 @@ pnpm build                # 构建所有包（shared → server/web）
 pnpm start                # 生产模式启动（单进程）
 pnpm db:generate          # 生成 Drizzle migration
 pnpm db:migrate           # 执行 migration
+pnpm test                 # 运行所有测试
+pnpm test:watch           # 监听模式运行测试
 ```
 
 ## 数据模型

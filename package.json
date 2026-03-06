@@ -10,7 +10,10 @@
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "db:generate": "pnpm --filter @testhub/server db:generate",
-    "db:migrate": "pnpm --filter @testhub/server db:migrate"
+    "db:migrate": "pnpm --filter @testhub/server db:migrate",
+    "test": "turbo run test",
+    "test:coverage": "turbo run test -- --coverage",
+    "test:watch": "pnpm --filter @testhub/server test:watch"
   },
   "devDependencies": {
     "@types/node": "^22.10.5",

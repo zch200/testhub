@@ -10,10 +10,8 @@ const migrationsDir = join(__dirname, "migrations");
 const dataDir = join(__dirname, "../../data");
 const dbPath = join(dataDir, "testhub.db");
 
-export function runMigrations(): void {
-  mkdirSync(dataDir, { recursive: true });
-  const db = new Database(dbPath);
-
+/** 在指定的 better-sqlite3 Database 实例上执行 migrations */
+export function runMigrationsOnDb(db: InstanceType<typeof Database>): void {
   db.pragma("foreign_keys = ON");
   db.exec(`
     CREATE TABLE IF NOT EXISTS __migrations (
@@ -47,6 +45,14 @@ export function runMigrations(): void {
     // eslint-disable-next-line no-console
     console.log(`Applied migration: ${file}`);
   }
+}
+
+/** 生产环境：打开本地 DB 文件，跑 migrations 后关闭 */
+export function runMigrations(): void {
+  mkdirSync(dataDir, { recursive: true });
+  const db = new Database(dbPath);
+
+  runMigrationsOnDb(db);
 
   db.close();
 }

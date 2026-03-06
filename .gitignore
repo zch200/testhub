@@ -16,5 +16,8 @@ apps/server/data/*.db
 apps/server/data/*.db-*
 apps/server/data/api-token
 
+# Test coverage
+coverage
+
 # Vite
 apps/web/.vite

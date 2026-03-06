@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc -p tsconfig.json --noEmit && vite build && rm -rf ../server/public && mkdir -p ../server/public && cp -R dist/* ../server/public/",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "lint": "tsc -p tsconfig.json --noEmit"
+    "lint": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -39,11 +40,17 @@
     "tailwindcss-animate": "^1.0.7"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
     "@vitejs/plugin-react": "^4.3.4",
+    "@vitest/coverage-v8": "^4.0.18",
+    "jsdom": "^28.1.0",
     "tailwindcss": "^3.4.19",
     "typescript": "^5.7.3",
-    "vite": "^6.0.7"
+    "vite": "^6.0.7",
+    "vitest": "^4.0.18"
   }
 }
