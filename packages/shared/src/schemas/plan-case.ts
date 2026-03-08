@@ -12,15 +12,12 @@ export const addPlanCasesByDirectorySchema = z.object({
 });
 
 export const updatePlanCaseSchema = z.object({
-  executionStatus: z.enum(executionStatuses).optional(),
-  remark: z.string().max(2000, { message: "备注最多 2000 个字符" }).optional(),
-  reasonNote: z.string().max(500, { message: "原因说明最多 500 个字符" }).optional()
+  executionStatus: z.enum(executionStatuses).optional()
 });
 
 export const batchUpdatePlanCaseStatusSchema = z.object({
   planCaseIds: z.array(z.number().int().positive()).min(1, { message: "请至少选择一条计划用例" }),
-  executionStatus: z.enum(executionStatuses),
-  reasonNote: z.string().max(500, { message: "原因说明最多 500 个字符" }).optional()
+  executionStatus: z.enum(executionStatuses)
 });
 
 export const planCaseSchema = z.object({
@@ -29,7 +26,6 @@ export const planCaseSchema = z.object({
   caseId: z.number().int().positive(),
   caseVersionId: z.number().int().positive(),
   executionStatus: z.enum(executionStatuses),
-  remark: z.string().nullable(),
   executedAt: isoDateTimeSchema.nullable(),
   createdAt: isoDateTimeSchema,
   updatedAt: isoDateTimeSchema
@@ -60,5 +56,23 @@ export const planCaseHistoryListQuerySchema = pageQuerySchema.extend({
   sortBy: z.enum(["createdAt"]).default("createdAt")
 });
 
+// ── 备注 ──────────────────────────────────────────
+
+export const planCaseRemarkSchema = z.object({
+  id: z.number().int().positive(),
+  planCaseId: z.number().int().positive(),
+  content: z.string(),
+  createdAt: isoDateTimeSchema
+});
+
+export const createPlanCaseRemarkSchema = z.object({
+  content: z.string().min(1, { message: "备注内容不能为空" }).max(2000, { message: "备注最多 2000 个字符" })
+});
+
+export const planCaseRemarkListQuerySchema = pageQuerySchema.extend({
+  sortBy: z.enum(["createdAt"]).default("createdAt")
+});
+
 export const planCaseListResponseSchema = buildPaginatedResponseSchema(planCaseSchema);
 export const planCaseHistoryListResponseSchema = buildPaginatedResponseSchema(planCaseStatusHistorySchema);
+export const planCaseRemarkListResponseSchema = buildPaginatedResponseSchema(planCaseRemarkSchema);

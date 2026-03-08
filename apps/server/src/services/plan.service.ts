@@ -119,6 +119,17 @@ export function updatePlan(id: number, input: UpdatePlanInput) {
     values.endDate = input.endDate;
   }
   if (input.status !== undefined) {
+    if (input.status !== existing.status) {
+      const allowedTransitions: Record<string, string[]> = {
+        draft: ["in_progress"],
+        in_progress: ["draft", "completed"],
+        completed: ["in_progress", "archived"]
+      };
+      const allowed = allowedTransitions[existing.status] ?? [];
+      if (!allowed.includes(input.status)) {
+        throw new AppError(409, `不允许从 ${existing.status} 转移到 ${input.status}`);
+      }
+    }
     values.status = input.status;
   }
 

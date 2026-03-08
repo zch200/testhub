@@ -56,7 +56,7 @@ pnpm test:watch           # 监听模式运行测试
 
 ## 数据模型
 
-9 张表，层级关系：Project → Library → Directory(树) / Case / Tag，Plan → PlanCase。
+10 张表，层级关系：Project → Library → Directory(树) / Case / Tag，Plan → PlanCase → PlanCaseRemarks。
 
 | 表 | 说明 | 关键字段 |
 |---|---|---|
@@ -68,7 +68,8 @@ pnpm test:watch           # 监听模式运行测试
 | tags | 标签 | library_id, name; UNIQUE(library_id, name) |
 | case_tags | 用例-标签关联 | case_id, tag_id |
 | plans | 测试计划 | project_id, name, start_date, end_date, status(draft/in_progress/completed/archived) |
-| plan_cases | 计划中的用例执行 | plan_id, case_id, execution_status(pending/passed/failed/blocked/skipped), remark, executed_at |
+| plan_cases | 计划中的用例执行 | plan_id, case_id, execution_status(pending/passed/failed/blocked/skipped), executed_at |
+| plan_case_remarks | 计划用例备注（一对多） | plan_case_id, content, created_at |
 
 - 所有表使用 integer PK autoincrement
 - 时间戳统一用 text 存 ISO 8601 格式

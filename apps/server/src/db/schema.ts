@@ -155,7 +155,6 @@ export const planCases = sqliteTable(
       .notNull()
       .references(() => caseVersions.id, { onDelete: "restrict" }),
     executionStatus: text("execution_status").notNull().default("pending"),
-    remark: text("remark"),
     executedAt: text("executed_at"),
     createdAt: text("created_at").notNull(),
     updatedAt: text("updated_at").notNull()
@@ -164,6 +163,15 @@ export const planCases = sqliteTable(
     planCaseUnique: uniqueIndex("idx_plan_cases_plan_case").on(table.planId, table.caseId)
   })
 );
+
+export const planCaseRemarks = sqliteTable("plan_case_remarks", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  planCaseId: integer("plan_case_id")
+    .notNull()
+    .references(() => planCases.id, { onDelete: "cascade" }),
+  content: text("content").notNull(),
+  createdAt: text("created_at").notNull()
+});
 
 export const planCaseStatusHistories = sqliteTable(
   "plan_case_status_histories",

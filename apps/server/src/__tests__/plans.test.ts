@@ -168,6 +168,130 @@ describe("Plans API", () => {
     }
   });
 
+  // ── 状态回退 ────────────────────────────────────────
+
+  it("PUT in_progress → draft 应返回 200", async () => {
+    const plan = await app
+      .inject({
+        method: "POST",
+        url: `/api/v1/projects/${projectId}/plans`,
+        headers: authHeaders(),
+        payload: { name: "回退计划1", status: "in_progress" },
+      })
+      .then((r) => r.json());
+
+    const res = await app.inject({
+      method: "PUT",
+      url: `/api/v1/plans/${plan.id}`,
+      headers: authHeaders(),
+      payload: { status: "draft" },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().status).toBe("draft");
+  });
+
+  it("PUT completed → in_progress 应返回 200", async () => {
+    const plan = await app
+      .inject({
+        method: "POST",
+        url: `/api/v1/projects/${projectId}/plans`,
+        headers: authHeaders(),
+        payload: { name: "回退计划2", status: "in_progress" },
+      })
+      .then((r) => r.json());
+
+    // in_progress → completed
+    await app.inject({
+      method: "PUT",
+      url: `/api/v1/plans/${plan.id}`,
+      headers: authHeaders(),
+      payload: { status: "completed" },
+    });
+
+    // completed → in_progress
+    const res = await app.inject({
+      method: "PUT",
+      url: `/api/v1/plans/${plan.id}`,
+      headers: authHeaders(),
+      payload: { status: "in_progress" },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().status).toBe("in_progress");
+  });
+
+  // ── 非法状态转移 ────────────────────────────────────
+
+  it("PUT draft → completed 应返回 409", async () => {
+    const plan = await app
+      .inject({
+        method: "POST",
+        url: `/api/v1/projects/${projectId}/plans`,
+        headers: authHeaders(),
+        payload: { name: "非法转移1" },
+      })
+      .then((r) => r.json());
+
+    const res = await app.inject({
+      method: "PUT",
+      url: `/api/v1/plans/${plan.id}`,
+      headers: authHeaders(),
+      payload: { status: "completed" },
+    });
+    expect(res.statusCode).toBe(409);
+  });
+
+  it("PUT draft → archived 应返回 409", async () => {
+    const plan = await app
+      .inject({
+        method: "POST",
+        url: `/api/v1/projects/${projectId}/plans`,
+        headers: authHeaders(),
+        payload: { name: "非法转移2" },
+      })
+      .then((r) => r.json());
+
+    const res = await app.inject({
+      method: "PUT",
+      url: `/api/v1/plans/${plan.id}`,
+      headers: authHeaders(),
+      payload: { status: "archived" },
+    });
+    expect(res.statusCode).toBe(409);
+  });
+
+  it("PUT archived → draft 应返回 409", async () => {
+    const plan = await app
+      .inject({
+        method: "POST",
+        url: `/api/v1/projects/${projectId}/plans`,
+        headers: authHeaders(),
+        payload: { name: "非法转移3", status: "in_progress" },
+      })
+      .then((r) => r.json());
+
+    // in_progress → completed → archived
+    await app.inject({
+      method: "PUT",
+      url: `/api/v1/plans/${plan.id}`,
+      headers: authHeaders(),
+      payload: { status: "completed" },
+    });
+    await app.inject({
+      method: "PUT",
+      url: `/api/v1/plans/${plan.id}`,
+      headers: authHeaders(),
+      payload: { status: "archived" },
+    });
+
+    const res = await app.inject({
+      method: "PUT",
+      url: `/api/v1/plans/${plan.id}`,
+      headers: authHeaders(),
+      payload: { status: "draft" },
+    });
+    expect(res.statusCode).toBe(409);
+  });
+
   // ── 统计 ──────────────────────────────────────────
 
   it("GET /plans/:id/stats → 获取计划统计", async () => {

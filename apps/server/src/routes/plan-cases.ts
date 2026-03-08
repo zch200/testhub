@@ -1,10 +1,12 @@
 import {
   addPlanCasesByDirectorySchema,
   batchUpdatePlanCaseStatusSchema,
+  createPlanCaseRemarkSchema,
   createPlanCasesSchema,
   pageQuerySchema,
   planCaseHistoryListQuerySchema,
   planCaseListQuerySchema,
+  planCaseRemarkListQuerySchema,
   updatePlanCaseSchema
 } from "@testhub/shared";
 import { z } from "zod";
@@ -12,10 +14,12 @@ import type { FastifyInstance } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { resolveOperator, resolveSource } from "../utils/auth";
 import {
+  addPlanCaseRemark,
   addPlanCases,
   addPlanCasesByDirectory,
   batchUpdatePlanCaseStatus,
   listPlanCaseHistory,
+  listPlanCaseRemarks,
   listPlanCases,
   listPlanHistory,
   removePlanCase,
@@ -86,6 +90,23 @@ export async function registerPlanCaseRoutes(app: FastifyInstance): Promise<void
       batchUpdatePlanCaseStatus(request.params.planId, request.body, resolveOperator(request), resolveSource(request));
       reply.status(204).send();
     }
+  });
+
+  server.route({
+    method: "POST",
+    url: "/plans/:planId/cases/:planCaseId/remarks",
+    schema: { params: planCaseIdParamSchema, body: createPlanCaseRemarkSchema },
+    handler: (request, reply) => {
+      const result = addPlanCaseRemark(request.params.planId, request.params.planCaseId, request.body.content);
+      reply.status(201).send(result);
+    }
+  });
+
+  server.route({
+    method: "GET",
+    url: "/plans/:planId/cases/:planCaseId/remarks",
+    schema: { params: planCaseIdParamSchema, querystring: planCaseRemarkListQuerySchema },
+    handler: (request) => listPlanCaseRemarks(request.params.planId, request.params.planCaseId, request.query)
   });
 
   server.route({

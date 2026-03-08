@@ -25,7 +25,9 @@ import type {
   updatePlanCaseSchema,
   batchUpdatePlanCaseStatusSchema,
   planCaseSchema,
-  planCaseStatusHistorySchema
+  planCaseStatusHistorySchema,
+  planCaseRemarkSchema,
+  createPlanCaseRemarkSchema
 } from "./schemas";
 
 export type CreateProjectInput = z.infer<typeof createProjectSchema>;
@@ -59,6 +61,8 @@ export type UpdatePlanCaseInput = z.infer<typeof updatePlanCaseSchema>;
 export type BatchUpdatePlanCaseStatusInput = z.infer<typeof batchUpdatePlanCaseStatusSchema>;
 export type PlanCase = z.infer<typeof planCaseSchema>;
 export type PlanCaseStatusHistory = z.infer<typeof planCaseStatusHistorySchema>;
+export type PlanCaseRemark = z.infer<typeof planCaseRemarkSchema>;
+export type CreatePlanCaseRemarkInput = z.infer<typeof createPlanCaseRemarkSchema>;
 
 export type ExecutionStatus = (typeof executionStatuses)[number];
 export type PlanStatus = (typeof planStatuses)[number];

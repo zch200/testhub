@@ -1,22 +1,18 @@
 import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import {
-  ArrowLeft,
-  FloppyDisk,
-  ClockCounterClockwise
-} from "@phosphor-icons/react";
+import { ArrowLeft } from "@phosphor-icons/react";
 import type { ExecutionStatus } from "@testhub/shared";
 import {
   useBatchUpdatePlanCaseStatus,
-  usePlanCaseHistory,
   usePlanCases,
   usePlanHistory,
-  useUpdatePlanCase
+  useUpdatePlanCase,
+  type PlanCaseListItem
 } from "../../api/plan-cases";
 import { usePlan, usePlanStats } from "../../api/plans";
 import { PlanStatusControl } from "../../components/plan-status-control";
+import { PlanCaseExecutionDrawer } from "../../components/plan-case-execution-drawer";
 import { Button } from "../../components/ui/button";
-import { Input } from "../../components/ui/input";
 import {
   Select,
   SelectContent,
@@ -32,15 +28,8 @@ import {
   TableHeader,
   TableRow
 } from "../../components/ui/table";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle
-} from "../../components/ui/sheet";
 import { Checkbox } from "../../components/ui/checkbox";
 import { PlanStatusBadge } from "../../components/plan-status-badge";
-import { PriorityBadge } from "../../components/priority-badge";
 import { LoadingSpinner } from "../../components/loading-spinner";
 
 const executionStatuses: ExecutionStatus[] = [
@@ -59,14 +48,6 @@ const executionStatusLabels: Record<ExecutionStatus, string> = {
   skipped: "跳过"
 };
 
-const caseTypeLabels: Record<string, string> = {
-  functional: "功能",
-  performance: "性能",
-  api: "接口",
-  ui: "UI",
-  other: "其他"
-};
-
 export function PlanDetailPage() {
   const params = useParams();
   const projectId = Number(params.projectId);
@@ -81,26 +62,11 @@ export function PlanDetailPage() {
 
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [batchStatus, setBatchStatus] = useState<ExecutionStatus>("pending");
-  const [batchReasonNote, setBatchReasonNote] = useState("");
-  const [historyPlanCaseId, setHistoryPlanCaseId] = useState<number | null>(
-    null
-  );
-  const caseHistory = usePlanCaseHistory(planId, historyPlanCaseId);
-
-  const [statusDraft, setStatusDraft] = useState<
-    Record<number, ExecutionStatus>
-  >({});
-  const [remarkDraft, setRemarkDraft] = useState<Record<number, string>>({});
-  const [reasonDraft, setReasonDraft] = useState<Record<number, string>>({});
+  const [drawerPlanCase, setDrawerPlanCase] = useState<PlanCaseListItem | null>(null);
 
   const progress = useMemo(() => {
     if (!stats.data || stats.data.total === 0) return 0;
-    const done =
-      stats.data.passed +
-      stats.data.failed +
-      stats.data.blocked +
-      stats.data.skipped;
-    return Math.round((done / stats.data.total) * 100);
+    return Math.round((stats.data.passed / stats.data.total) * 100);
   }, [stats.data]);
 
   const toggleSelected = (planCaseId: number) => {
@@ -111,30 +77,16 @@ export function PlanDetailPage() {
     );
   };
 
-  const submitSingleUpdate = (planCaseId: number) => {
-    const item = planCases.data?.items.find((entry) => entry.id === planCaseId);
-    if (!item) return;
-    updatePlanCase.mutate({
-      planCaseId,
-      executionStatus: statusDraft[planCaseId] ?? item.executionStatus,
-      remark: remarkDraft[planCaseId] ?? item.remark ?? "",
-      reasonNote: reasonDraft[planCaseId] || undefined
-    });
-    setReasonDraft((current) => ({ ...current, [planCaseId]: "" }));
-  };
-
   const submitBatchUpdate = () => {
     if (selectedIds.length === 0) return;
     batchUpdate.mutate(
       {
         planCaseIds: selectedIds,
-        executionStatus: batchStatus,
-        reasonNote: batchReasonNote || undefined
+        executionStatus: batchStatus
       },
       {
         onSuccess: () => {
           setSelectedIds([]);
-          setBatchReasonNote("");
         }
       }
     );
@@ -179,7 +131,7 @@ export function PlanDetailPage() {
             </p>
             <div className="pt-2">
               <div className="flex justify-between text-xs mb-1">
-                <span className="text-muted-foreground">进度</span>
+                <span className="text-muted-foreground">通过率</span>
                 <strong>{progress}%</strong>
               </div>
               <div className="h-2 rounded-full bg-muted overflow-hidden">
@@ -246,12 +198,6 @@ export function PlanDetailPage() {
               ))}
             </SelectContent>
           </Select>
-          <Input
-            placeholder="原因说明（选填）"
-            value={batchReasonNote}
-            onChange={(e) => setBatchReasonNote(e.target.value)}
-            className="h-9 w-48"
-          />
           <Button
             size="sm"
             onClick={submitBatchUpdate}
@@ -299,18 +245,14 @@ export function PlanDetailPage() {
                   />
                 </TableHead>
                 <TableHead>标题</TableHead>
-                <TableHead className="w-24">状态</TableHead>
-                <TableHead className="max-w-[140px]">备注</TableHead>
-                <TableHead className="max-w-[120px]">原因说明</TableHead>
-                <TableHead className="w-14">版本</TableHead>
-                <TableHead className="w-[120px]">操作</TableHead>
+                <TableHead className="w-[130px]">状态</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {planCases.data?.items.length === 0 && (
                 <TableRow>
                   <TableCell
-                    colSpan={7}
+                    colSpan={3}
                     className="text-center text-muted-foreground py-12"
                   >
                     该计划下暂无用例，请通过 API 添加。
@@ -326,22 +268,22 @@ export function PlanDetailPage() {
                     />
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-medium">{item.caseTitle}</span>
-                      <span className="text-muted-foreground text-xs inline-flex items-center gap-1">
-                        <PriorityBadge priority={item.casePriority} className="text-xs" />
-                        {caseTypeLabels[item.caseType] ?? item.caseType}
-                      </span>
-                    </div>
+                    <button
+                      type="button"
+                      className="text-left font-medium hover:underline cursor-pointer"
+                      onClick={() => setDrawerPlanCase(item)}
+                    >
+                      {item.caseTitle}
+                    </button>
                   </TableCell>
                   <TableCell>
                     <Select
-                      value={statusDraft[item.id] ?? item.executionStatus}
+                      value={item.executionStatus}
                       onValueChange={(v) =>
-                        setStatusDraft((c) => ({
-                          ...c,
-                          [item.id]: v as ExecutionStatus
-                        }))
+                        updatePlanCase.mutate({
+                          planCaseId: item.id,
+                          executionStatus: v as ExecutionStatus
+                        })
                       }
                     >
                       <SelectTrigger className="h-8 border-dashed">
@@ -355,58 +297,6 @@ export function PlanDetailPage() {
                         ))}
                       </SelectContent>
                     </Select>
-                  </TableCell>
-                  <TableCell>
-                    <Input
-                      value={remarkDraft[item.id] ?? item.remark ?? ""}
-                      onChange={(e) =>
-                        setRemarkDraft((c) => ({
-                          ...c,
-                          [item.id]: e.target.value
-                        }))
-                      }
-                      className="h-8 text-sm"
-                      placeholder="备注"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Input
-                      value={reasonDraft[item.id] ?? ""}
-                      onChange={(e) =>
-                        setReasonDraft((c) => ({
-                          ...c,
-                          [item.id]: e.target.value
-                        }))
-                      }
-                      className="h-8 text-sm"
-                      placeholder="原因"
-                    />
-                  </TableCell>
-                  <TableCell className="text-muted-foreground text-xs">
-                    v{item.caseVersionNo}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 gap-1"
-                        onClick={() => submitSingleUpdate(item.id)}
-                        disabled={updatePlanCase.isPending}
-                      >
-                        <FloppyDisk className="h-3.5 w-3.5" />
-                        保存
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 gap-1"
-                        onClick={() => setHistoryPlanCaseId(item.id)}
-                      >
-                        <ClockCounterClockwise className="h-3.5 w-3.5" />
-                        历史
-                      </Button>
-                    </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -455,55 +345,16 @@ export function PlanDetailPage() {
         )}
       </div>
 
-      <Sheet
-        open={historyPlanCaseId !== null}
+      <PlanCaseExecutionDrawer
+        planId={planId}
+        planCase={drawerPlanCase}
+        open={drawerPlanCase !== null}
         onOpenChange={(open) => {
-          if (!open) setHistoryPlanCaseId(null);
+          if (!open) setDrawerPlanCase(null);
         }}
-      >
-        <SheetContent className="w-full sm:max-w-md overflow-y-auto">
-          <SheetHeader>
-            <SheetTitle>计划用例 #{historyPlanCaseId} 历史</SheetTitle>
-          </SheetHeader>
-          <div className="mt-4">
-            {caseHistory.isLoading && (
-              <p className="text-sm text-muted-foreground">加载历史中…</p>
-            )}
-            {caseHistory.error && (
-              <p className="text-sm text-destructive">
-                {caseHistory.error.message}
-              </p>
-            )}
-            {caseHistory.data && caseHistory.data.items.length > 0 && (
-              <ul className="space-y-2">
-                {caseHistory.data.items.map((item) => (
-                  <li
-                    key={item.id}
-                    className="text-sm py-2 border-b border-border/60 last:border-0"
-                  >
-                    <span className="font-medium">{item.actor}</span>{" "}
-                    <span className="text-muted-foreground">
-                      {item.fromExecutionStatus ?? "—"} → {item.toExecutionStatus}
-                    </span>{" "}
-                    <span className="text-xs text-muted-foreground">
-                      {item.reasonType}
-                    </span>
-                    <br />
-                    <time className="text-xs text-muted-foreground">
-                      {new Date(item.createdAt).toLocaleString()}
-                    </time>
-                    {item.reasonNote && (
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {item.reasonNote}
-                      </p>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </SheetContent>
-      </Sheet>
+        items={planCases.data?.items ?? []}
+        onNavigate={setDrawerPlanCase}
+      />
     </div>
   );
 }

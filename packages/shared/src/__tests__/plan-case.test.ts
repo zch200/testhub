@@ -6,6 +6,7 @@ import {
   batchUpdatePlanCaseStatusSchema,
   planCaseListQuerySchema,
   planCaseHistoryListQuerySchema,
+  createPlanCaseRemarkSchema,
 } from "../schemas/plan-case";
 
 describe("createPlanCasesSchema", () => {
@@ -55,20 +56,6 @@ describe("updatePlanCaseSchema", () => {
   it("拒绝非法执行状态", () => {
     expect(() => updatePlanCaseSchema.parse({ executionStatus: "invalid" })).toThrow();
   });
-
-  it("接受 remark", () => {
-    expect(updatePlanCaseSchema.parse({ remark: "测试备注" }).remark).toBe("测试备注");
-  });
-
-  it("remark 最长 2000 字符", () => {
-    expect(() => updatePlanCaseSchema.parse({ remark: "r".repeat(2001) })).toThrow("备注最多 2000 个字符");
-  });
-
-  it("reasonNote 最长 500 字符", () => {
-    expect(() => updatePlanCaseSchema.parse({ reasonNote: "r".repeat(501) })).toThrow(
-      "原因说明最多 500 个字符"
-    );
-  });
 });
 
 describe("batchUpdatePlanCaseStatusSchema", () => {
@@ -90,14 +77,26 @@ describe("batchUpdatePlanCaseStatusSchema", () => {
   it("executionStatus 必填", () => {
     expect(() => batchUpdatePlanCaseStatusSchema.parse({ planCaseIds: [1] })).toThrow();
   });
+});
 
-  it("reasonNote 可选", () => {
-    const result = batchUpdatePlanCaseStatusSchema.parse({
-      planCaseIds: [1],
-      executionStatus: "failed",
-      reasonNote: "环境问题",
-    });
-    expect(result.reasonNote).toBe("环境问题");
+describe("createPlanCaseRemarkSchema", () => {
+  it("接受合法备注", () => {
+    const result = createPlanCaseRemarkSchema.parse({ content: "测试备注" });
+    expect(result.content).toBe("测试备注");
+  });
+
+  it("content 不能为空", () => {
+    expect(() => createPlanCaseRemarkSchema.parse({ content: "" })).toThrow("备注内容不能为空");
+  });
+
+  it("content 最长 2000 字符", () => {
+    expect(() => createPlanCaseRemarkSchema.parse({ content: "r".repeat(2001) })).toThrow(
+      "备注最多 2000 个字符"
+    );
+  });
+
+  it("content 必填", () => {
+    expect(() => createPlanCaseRemarkSchema.parse({})).toThrow();
   });
 });
 

@@ -13,6 +13,7 @@ import {
   cases,
   directories,
   libraries,
+  planCaseRemarks,
   planCaseStatusHistories,
   planCases,
   plans
@@ -83,7 +84,6 @@ function mapPlanCase(row: typeof planCases.$inferSelect) {
     caseId: row.caseId,
     caseVersionId: row.caseVersionId,
     executionStatus: row.executionStatus as ExecutionStatus,
-    remark: row.remark,
     executedAt: row.executedAt,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt
@@ -237,7 +237,6 @@ export function addPlanCases(planId: number, input: CreatePlanCasesInput, actor:
           caseId,
           caseVersionId: latestVersion.id,
           executionStatus: "pending",
-          remark: null,
           executedAt: null,
           createdAt: now,
           updatedAt: now
@@ -338,7 +337,6 @@ export function updatePlanCase(
     tx.update(planCases)
       .set({
         executionStatus: nextStatus,
-        remark: input.remark ?? current.remark,
         executedAt: nextExecutedAt,
         updatedAt: now
       })
@@ -355,7 +353,6 @@ export function updatePlanCase(
         fromCaseVersionId: current.caseVersionId,
         toCaseVersionId: current.caseVersionId,
         reasonType: "manual_update",
-        reasonNote: input.reasonNote,
         actor,
         source,
         createdAt: now
@@ -411,7 +408,6 @@ export function batchUpdatePlanCaseStatus(
         fromCaseVersionId: row.caseVersionId,
         toCaseVersionId: row.caseVersionId,
         reasonType: "batch_update",
-        reasonNote: input.reasonNote,
         actor,
         source,
         createdAt: now
@@ -467,6 +463,66 @@ export function listPlanHistory(planId: number, query: ListHistoryQuery) {
     .get();
 
   return toPaginatedResult(rows.map(mapHistory), Number(totalResult?.count ?? 0), pagination);
+}
+
+// ── 备注 ──────────────────────────────────────────
+
+interface ListRemarksQuery {
+  page: number;
+  pageSize: number;
+  sortBy: "createdAt";
+  sortOrder: "asc" | "desc";
+}
+
+export function addPlanCaseRemark(planId: number, planCaseId: number, content: string) {
+  getPlanOrThrow(planId);
+  const current = db
+    .select()
+    .from(planCases)
+    .where(and(eq(planCases.id, planCaseId), eq(planCases.planId, planId)))
+    .get();
+  assertOrThrow(current, 404, "计划用例不存在");
+
+  const now = nowIso();
+  const result = db
+    .insert(planCaseRemarks)
+    .values({ planCaseId, content, createdAt: now })
+    .run();
+
+  return {
+    id: Number(result.lastInsertRowid),
+    planCaseId,
+    content,
+    createdAt: now
+  };
+}
+
+export function listPlanCaseRemarks(planId: number, planCaseId: number, query: ListRemarksQuery) {
+  getPlanOrThrow(planId);
+  const pagination = toPagination(query.page, query.pageSize);
+
+  const whereClause = eq(planCaseRemarks.planCaseId, planCaseId);
+  const sortDir = query.sortOrder === "asc" ? asc(planCaseRemarks.createdAt) : desc(planCaseRemarks.createdAt);
+
+  const rows = db
+    .select()
+    .from(planCaseRemarks)
+    .where(whereClause)
+    .orderBy(sortDir)
+    .limit(pagination.pageSize)
+    .offset(offsetFromPagination(pagination))
+    .all();
+
+  const totalResult = db.select({ count: sql<number>`count(*)` }).from(planCaseRemarks).where(whereClause).get();
+
+  const items = rows.map((row) => ({
+    id: row.id,
+    planCaseId: row.planCaseId,
+    content: row.content,
+    createdAt: row.createdAt
+  }));
+
+  return toPaginatedResult(items, Number(totalResult?.count ?? 0), pagination);
 }
 
 export function syncCaseVersionToOpenPlans(caseId: number, newCaseVersionId: number) {

@@ -180,7 +180,6 @@ describe("Plan Cases API", () => {
       headers: authHeaders(),
       payload: {
         executionStatus: "passed",
-        remark: "测试通过",
       },
     });
     expect(res.statusCode).toBe(200);
@@ -207,7 +206,6 @@ describe("Plan Cases API", () => {
       payload: {
         planCaseIds,
         executionStatus: "failed",
-        remark: "批量标记失败",
       },
     });
     expect(res.statusCode).toBe(204);
@@ -290,6 +288,115 @@ describe("Plan Cases API", () => {
       })
       .then((r) => r.json());
     expect(afterRes.items.length).toBe(countBefore - 1);
+  });
+
+  // ── 备注 API ──────────────────────────────────────
+
+  it("POST /plans/:planId/cases/:planCaseId/remarks → 创建备注", async () => {
+    const listRes = await app
+      .inject({
+        method: "GET",
+        url: `/api/v1/plans/${planId}/cases`,
+        headers: authHeaders(),
+      })
+      .then((r) => r.json());
+    const planCaseId = listRes.items[0].id;
+
+    const res = await app.inject({
+      method: "POST",
+      url: `/api/v1/plans/${planId}/cases/${planCaseId}/remarks`,
+      headers: authHeaders(),
+      payload: { content: "这是一条备注" },
+    });
+    expect(res.statusCode).toBe(201);
+    expect(res.json().content).toBe("这是一条备注");
+    expect(res.json().planCaseId).toBe(planCaseId);
+  });
+
+  it("GET /plans/:planId/cases/:planCaseId/remarks → 备注列表按时间倒序", async () => {
+    const listRes = await app
+      .inject({
+        method: "GET",
+        url: `/api/v1/plans/${planId}/cases`,
+        headers: authHeaders(),
+      })
+      .then((r) => r.json());
+    const planCaseId = listRes.items[0].id;
+
+    // 添加第二条备注
+    await app.inject({
+      method: "POST",
+      url: `/api/v1/plans/${planId}/cases/${planCaseId}/remarks`,
+      headers: authHeaders(),
+      payload: { content: "第二条备注" },
+    });
+
+    const res = await app.inject({
+      method: "GET",
+      url: `/api/v1/plans/${planId}/cases/${planCaseId}/remarks`,
+      headers: authHeaders(),
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.items.length).toBeGreaterThanOrEqual(2);
+    // 默认 desc，第一条应该是最新的
+    expect(body.items[0].content).toBe("第二条备注");
+  });
+
+  it("删除 planCase 时级联删除备注", async () => {
+    // 新建计划和用例
+    const plan4 = await app
+      .inject({
+        method: "POST",
+        url: `/api/v1/projects/${projectId}/plans`,
+        headers: authHeaders(),
+        payload: { name: "备注级联计划" },
+      })
+      .then((r) => r.json());
+
+    await app.inject({
+      method: "POST",
+      url: `/api/v1/plans/${plan4.id}/cases`,
+      headers: authHeaders(),
+      payload: { caseIds: [caseIds[0]] },
+    });
+
+    const pcList = await app
+      .inject({
+        method: "GET",
+        url: `/api/v1/plans/${plan4.id}/cases`,
+        headers: authHeaders(),
+      })
+      .then((r) => r.json());
+    const pcId = pcList.items[0].id;
+
+    // 添加备注
+    await app.inject({
+      method: "POST",
+      url: `/api/v1/plans/${plan4.id}/cases/${pcId}/remarks`,
+      headers: authHeaders(),
+      payload: { content: "待级联删除的备注" },
+    });
+
+    // 删除 planCase
+    const delRes = await app.inject({
+      method: "DELETE",
+      url: `/api/v1/plans/${plan4.id}/cases/${pcId}`,
+      headers: authHeaders(),
+    });
+    expect(delRes.statusCode).toBe(204);
+
+    // 备注应该也被级联删除了（通过尝试获取来验证）
+    // 由于 planCase 已删除，remarks 端点应该返回 404
+    const remarkRes = await app.inject({
+      method: "GET",
+      url: `/api/v1/plans/${plan4.id}/cases/${pcId}/remarks`,
+      headers: authHeaders(),
+    });
+    // planCase 不存在后，查询备注应该返回空列表（planCaseId 在 remarks 表已无数据）
+    // 这里不会 404 因为只检查 plan 存在
+    expect(remarkRes.statusCode).toBe(200);
+    expect(remarkRes.json().items).toHaveLength(0);
   });
 
   // ── 统计验证 ──────────────────────────────────────
