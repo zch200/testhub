@@ -50,6 +50,8 @@ pnpm build                # 构建所有包（shared → server/web）
 pnpm start                # 生产模式启动（单进程）
 pnpm db:generate          # 生成 Drizzle migration
 pnpm db:migrate           # 执行 migration
+pnpm test                 # 运行所有测试
+pnpm test:watch           # 监听模式运行测试
 ```
 
 ## 数据模型
@@ -119,6 +121,22 @@ pnpm db:migrate           # 执行 migration
 - UI 组件优先使用 shadcn/ui，图标使用 Phosphor-icons
 - 表单校验复用 packages/shared 的 Zod schema
 - 页面组件放 `src/pages/`，可复用组件放 `src/components/`
+
+## 分支与版本管理
+
+本项目采用 **GitHub Flow**：`main` 始终保持可运行，每个任务开独立短生命周期分支，本地验证通过后合并回 main。
+
+**分支命名前缀**：`feat/` | `fix/` | `refactor/` | `docs/` | `chore/`
+
+**每次任务开始前必须先建分支**：
+```bash
+git checkout main && git pull
+git checkout -b feat/xxx   # 或 fix/xxx 等
+```
+
+**合并前必须通过**：`pnpm typecheck` + `pnpm build`
+
+完整流程见 `.github/CONTRIBUTING.md`。
 
 ## 设计参考
 

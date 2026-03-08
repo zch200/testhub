@@ -1,0 +1,26 @@
+node_modules
+.pnpm-store
+.turbo
+.env
+.env.*
+*.log
+.DS_Store
+
+# Build artifacts
+dist
+build
+apps/server/public
+
+# Database
+apps/server/data/*.db
+apps/server/data/*.db-*
+apps/server/data/api-token
+
+# Test coverage
+coverage
+
+# Vite
+apps/web/.vite
+
+# Claude Code worktrees
+.claude/worktrees/

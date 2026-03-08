@@ -1,0 +1,23 @@
+{
+  "name": "testhub",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@10.1.0",
+  "scripts": {
+    "dev": "turbo run dev --parallel",
+    "build": "turbo run build",
+    "start": "pnpm --filter @testhub/server start",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "db:generate": "pnpm --filter @testhub/server db:generate",
+    "db:migrate": "pnpm --filter @testhub/server db:migrate",
+    "test": "turbo run test",
+    "test:coverage": "turbo run test -- --coverage",
+    "test:watch": "pnpm --filter @testhub/server test:watch"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.3"
+  }
+}
