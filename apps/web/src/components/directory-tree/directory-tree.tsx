@@ -1,11 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
-import { Folder, Plus } from "@phosphor-icons/react";
-import { useDirectoryTree as useDirectoryTreeQuery, useCreateDirectory, useUpdateDirectory, useDeleteDirectory } from "../../api/directories";
-import { Button } from "../ui/button";
+import { Folder } from "@phosphor-icons/react";
+import { useDirectoryTree as useDirectoryTreeQuery } from "../../api/directories";
 import { DirectoryNode } from "./directory-node";
-import { DirectoryFormDialog } from "./directory-form-dialog";
-import { MoveDirectoryDialog } from "./move-directory-dialog";
-import { ConfirmDialog } from "../confirm-dialog";
 import { cn } from "../../lib/utils";
 
 interface DirectoryTreeProps {
@@ -22,9 +18,6 @@ export function DirectoryTree({
   className
 }: DirectoryTreeProps) {
   const { data: tree = [], isLoading, error } = useDirectoryTreeQuery(libraryId);
-  const createDir = useCreateDirectory(libraryId);
-  const updateDir = useUpdateDirectory(libraryId);
-  const deleteDir = useDeleteDirectory(libraryId);
 
   const [expandedIds, setExpandedIds] = useState<Set<number>>(() => new Set());
 
@@ -36,70 +29,6 @@ export function DirectoryTree({
       return next;
     });
   }, []);
-
-  const expandParent = useCallback((parentId: number | null) => {
-    if (parentId !== null)
-      setExpandedIds((prev) => new Set(prev).add(parentId));
-  }, []);
-
-  const [formState, setFormState] = useState<
-    | { type: "create"; parentId: number | null }
-    | { type: "rename"; id: number; name: string }
-    | null
-  >(null);
-  const [moveTargetId, setMoveTargetId] = useState<number | null>(null);
-  const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
-
-  const handleCreate = useCallback(
-    (name: string) => {
-      const parentId = formState?.type === "create" ? formState.parentId ?? undefined : undefined;
-      createDir.mutate(
-        { name: name.trim(), parentId: parentId ?? null, sortOrder: 0 },
-        {
-          onSuccess: () => {
-            setFormState(null);
-            if (parentId != null) expandParent(parentId);
-          }
-        }
-      );
-    },
-    [formState, createDir, expandParent]
-  );
-
-  const handleRename = useCallback(
-    (name: string) => {
-      if (formState?.type !== "rename") return;
-      updateDir.mutate(
-        { id: formState.id, name: name.trim() },
-        { onSuccess: () => setFormState(null) }
-      );
-    },
-    [formState, updateDir]
-  );
-
-  const handleMoveConfirm = useCallback(
-    (targetParentId: number | null) => {
-      if (moveTargetId === null) return;
-      updateDir.mutate(
-        { id: moveTargetId, parentId: targetParentId },
-        { onSuccess: () => setMoveTargetId(null) }
-      );
-    },
-    [moveTargetId, updateDir]
-  );
-
-  const handleDeleteConfirm = useCallback(() => {
-    if (deleteTargetId === null) return;
-    deleteDir.mutate(
-      { id: deleteTargetId, caseMoveTo: "uncategorized" },
-      {
-        onSuccess: () => {
-          setDeleteTargetId(null);
-          if (selectedId === deleteTargetId) onSelect(null);
-        }
-      }
-    );
-  }, [deleteTargetId, deleteDir, selectedId, onSelect]);
 
   const initialExpand = useMemo(() => {
     const set = new Set<number>();
@@ -157,87 +86,11 @@ export function DirectoryTree({
                 expandedIds={expandedIds.size > 0 ? expandedIds : initialExpand}
                 onSelect={onSelect}
                 onToggleExpand={toggleExpand}
-                onNewSub={(parentId) =>
-                  setFormState({ type: "create", parentId })
-                }
-                onRename={(id, name) =>
-                  setFormState({ type: "rename", id, name })
-                }
-                onMove={(id) => setMoveTargetId(id)}
-                onDelete={(id) => setDeleteTargetId(id)}
               />
             ))}
           </div>
         )}
       </div>
-
-      <div className="shrink-0 p-2 border-t border-border/60 bg-muted/30">
-        <Button
-          variant="outline"
-          size="sm"
-          className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground"
-          onClick={() => setFormState({ type: "create", parentId: null })}
-        >
-          <Plus className="h-4 w-4" weight="bold" />
-          新建目录
-        </Button>
-      </div>
-
-      {formState?.type === "create" && (
-        <DirectoryFormDialog
-          open={true}
-          onOpenChange={(open) => {
-            if (!open) setFormState(null);
-          }}
-          mode="create"
-          defaultName=""
-          onSubmit={handleCreate}
-          loading={createDir.isPending}
-          error={createDir.error?.message}
-        />
-      )}
-
-      {formState?.type === "rename" && (
-        <DirectoryFormDialog
-          open={true}
-          onOpenChange={(open) => {
-            if (!open) setFormState(null);
-          }}
-          mode="rename"
-          defaultName={formState.name}
-          onSubmit={handleRename}
-          loading={updateDir.isPending}
-          error={updateDir.error?.message}
-        />
-      )}
-
-      {moveTargetId !== null && (
-        <MoveDirectoryDialog
-          open={true}
-          onOpenChange={(open) => {
-            if (!open) setMoveTargetId(null);
-          }}
-          tree={tree}
-          currentDirectoryId={moveTargetId}
-          onMove={handleMoveConfirm}
-          loading={updateDir.isPending}
-        />
-      )}
-
-      {deleteTargetId !== null && (
-        <ConfirmDialog
-          open={true}
-          onOpenChange={(open) => {
-            if (!open) setDeleteTargetId(null);
-          }}
-          title="删除目录"
-          description="确定删除该目录及其子目录吗？其中的用例将变为未分类，且无法恢复。"
-          confirmLabel="删除"
-          variant="destructive"
-          onConfirm={handleDeleteConfirm}
-          loading={deleteDir.isPending}
-        />
-      )}
     </div>
   );
 }

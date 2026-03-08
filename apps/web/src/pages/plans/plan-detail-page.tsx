@@ -2,10 +2,6 @@ import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
   ArrowLeft,
-  PencilSimple,
-  ListChecks,
-  FolderOpen,
-  Trash,
   FloppyDisk,
   ClockCounterClockwise
 } from "@phosphor-icons/react";
@@ -15,10 +11,10 @@ import {
   usePlanCaseHistory,
   usePlanCases,
   usePlanHistory,
-  useUpdatePlanCase,
-  useRemovePlanCase
+  useUpdatePlanCase
 } from "../../api/plan-cases";
-import { usePlan, usePlanStats, useUpdatePlan } from "../../api/plans";
+import { usePlan, usePlanStats } from "../../api/plans";
+import { PlanStatusControl } from "../../components/plan-status-control";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import {
@@ -42,10 +38,6 @@ import {
   SheetHeader,
   SheetTitle
 } from "../../components/ui/sheet";
-import { PlanFormDialog } from "../../components/plan-form-dialog";
-import { AddCasesDialog } from "../../components/add-cases-dialog";
-import { AddByDirectoryDialog } from "../../components/add-by-directory-dialog";
-import { ConfirmDialog } from "../../components/confirm-dialog";
 import { Checkbox } from "../../components/ui/checkbox";
 import { PlanStatusBadge } from "../../components/plan-status-badge";
 import { PriorityBadge } from "../../components/priority-badge";
@@ -86,8 +78,6 @@ export function PlanDetailPage() {
   const planHistory = usePlanHistory(planId);
   const updatePlanCase = useUpdatePlanCase(planId);
   const batchUpdate = useBatchUpdatePlanCaseStatus(planId);
-  const removePlanCase = useRemovePlanCase(planId);
-  const updatePlan = useUpdatePlan(projectId);
 
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [batchStatus, setBatchStatus] = useState<ExecutionStatus>("pending");
@@ -102,14 +92,6 @@ export function PlanDetailPage() {
   >({});
   const [remarkDraft, setRemarkDraft] = useState<Record<number, string>>({});
   const [reasonDraft, setReasonDraft] = useState<Record<number, string>>({});
-
-  const [editPlanOpen, setEditPlanOpen] = useState(false);
-  const [addCasesOpen, setAddCasesOpen] = useState(false);
-  const [addByDirOpen, setAddByDirOpen] = useState(false);
-  const [removeTargetId, setRemoveTargetId] = useState<number | null>(null);
-  const removeTargetItem = planCases.data?.items.find(
-    (i) => i.id === removeTargetId
-  );
 
   const progress = useMemo(() => {
     if (!stats.data || stats.data.total === 0) return 0;
@@ -176,33 +158,9 @@ export function PlanDetailPage() {
               返回计划列表
             </Link>
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-2"
-            onClick={() => setEditPlanOpen(true)}
-          >
-            <PencilSimple className="h-4 w-4" />
-            编辑计划
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-2"
-            onClick={() => setAddCasesOpen(true)}
-          >
-            <ListChecks className="h-4 w-4" />
-            添加用例
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-2"
-            onClick={() => setAddByDirOpen(true)}
-          >
-            <FolderOpen className="h-4 w-4" />
-            按目录添加
-          </Button>
+          {plan.data && (
+            <PlanStatusControl plan={plan.data} projectId={projectId} />
+          )}
         </div>
       </div>
 
@@ -345,7 +303,7 @@ export function PlanDetailPage() {
                 <TableHead className="max-w-[140px]">备注</TableHead>
                 <TableHead className="max-w-[120px]">原因说明</TableHead>
                 <TableHead className="w-14">版本</TableHead>
-                <TableHead className="w-[140px]">操作</TableHead>
+                <TableHead className="w-[120px]">操作</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -355,7 +313,7 @@ export function PlanDetailPage() {
                     colSpan={7}
                     className="text-center text-muted-foreground py-12"
                   >
-                    该计划下暂无用例，可点击「添加用例」或「按目录添加」。
+                    该计划下暂无用例，请通过 API 添加。
                   </TableCell>
                 </TableRow>
               )}
@@ -447,15 +405,6 @@ export function PlanDetailPage() {
                       >
                         <ClockCounterClockwise className="h-3.5 w-3.5" />
                         历史
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 text-destructive hover:text-destructive"
-                        onClick={() => setRemoveTargetId(item.id)}
-                      >
-                        <Trash className="h-3.5 w-3.5" />
-                        移除
                       </Button>
                     </div>
                   </TableCell>
@@ -555,60 +504,6 @@ export function PlanDetailPage() {
           </div>
         </SheetContent>
       </Sheet>
-
-      {plan.data && (
-        <PlanFormDialog
-          open={editPlanOpen}
-          onOpenChange={setEditPlanOpen}
-          mode="edit"
-          projectId={projectId}
-          plan={plan.data}
-          onSubmit={(values) => {
-            updatePlan.mutate(
-              { id: plan.data!.id, ...values },
-              { onSuccess: () => setEditPlanOpen(false) }
-            );
-          }}
-          loading={updatePlan.isPending}
-          error={updatePlan.error?.message}
-        />
-      )}
-
-      <AddCasesDialog
-        open={addCasesOpen}
-        onOpenChange={setAddCasesOpen}
-        planId={planId}
-        projectId={projectId}
-      />
-
-      <AddByDirectoryDialog
-        open={addByDirOpen}
-        onOpenChange={setAddByDirOpen}
-        planId={planId}
-        projectId={projectId}
-      />
-
-      <ConfirmDialog
-        open={removeTargetId !== null}
-        onOpenChange={(open) => {
-          if (!open) setRemoveTargetId(null);
-        }}
-        title="从计划移除用例"
-        description={
-          removeTargetItem
-            ? `确定将「${removeTargetItem.caseTitle}」从本计划中移除吗？执行记录将保留在时间线中。`
-            : ""
-        }
-        confirmLabel="移除"
-        onConfirm={() => {
-          if (removeTargetId !== null) {
-            removePlanCase.mutate(removeTargetId, {
-              onSuccess: () => setRemoveTargetId(null)
-            });
-          }
-        }}
-        loading={removePlanCase.isPending}
-      />
     </div>
   );
 }

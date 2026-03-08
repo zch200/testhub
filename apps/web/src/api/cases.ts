@@ -1,10 +1,5 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type {
-  BatchCreateCaseInput,
-  Case,
-  CreateCaseInput,
-  UpdateCaseInput
-} from "@testhub/shared";
+import { useQuery } from "@tanstack/react-query";
+import type { Case } from "@testhub/shared";
 import { apiRequest } from "./client";
 import type { Paginated } from "./types";
 
@@ -65,60 +60,6 @@ export function useCase(id: number | null) {
     enabled: id != null && Number.isFinite(id),
     queryKey: ["case", id],
     queryFn: () => apiRequest<Case>(`/cases/${id}`)
-  });
-}
-
-export function useCreateCase(libraryId: number) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (payload: CreateCaseInput) =>
-      apiRequest<Case>(`/libraries/${libraryId}/cases`, {
-        method: "POST",
-        body: JSON.stringify(payload)
-      }),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["cases", libraryId] });
-    }
-  });
-}
-
-export function useUpdateCase(libraryId: number) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, ...payload }: UpdateCaseInput & { id: number }) =>
-      apiRequest<Case>(`/cases/${id}`, {
-        method: "PUT",
-        body: JSON.stringify(payload)
-      }),
-    onSuccess: (_data, variables) => {
-      void queryClient.invalidateQueries({ queryKey: ["cases", libraryId] });
-      void queryClient.invalidateQueries({ queryKey: ["case", variables.id] });
-    }
-  });
-}
-
-export function useDeleteCase(libraryId: number) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (id: number) =>
-      apiRequest<void>(`/cases/${id}`, { method: "DELETE" }),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["cases", libraryId] });
-    }
-  });
-}
-
-export function useBatchCreateCases(libraryId: number) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (payload: BatchCreateCaseInput) =>
-      apiRequest<Case[]>(`/libraries/${libraryId}/cases/batch`, {
-        method: "POST",
-        body: JSON.stringify(payload)
-      }),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["cases", libraryId] });
-    }
   });
 }
 

@@ -19,56 +19,6 @@ export interface PlanCaseListItem {
   updatedAt: string;
 }
 
-export function useAddPlanCases(planId: number) {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (payload: { caseIds: number[] }) =>
-      apiRequest<{ added: number[]; skipped: number[] }>(`/plans/${planId}/cases`, {
-        method: "POST",
-        body: JSON.stringify(payload)
-      }),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["plan-cases", planId] });
-      void queryClient.invalidateQueries({ queryKey: ["plan-stats", planId] });
-      void queryClient.invalidateQueries({ queryKey: ["plan-history", planId] });
-    }
-  });
-}
-
-export function useAddPlanCasesByDirectory(planId: number) {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (payload: { directoryId: number; recursive: boolean }) =>
-      apiRequest<{ added: number[]; skipped: number[] }>(`/plans/${planId}/cases/by-directory`, {
-        method: "POST",
-        body: JSON.stringify(payload)
-      }),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["plan-cases", planId] });
-      void queryClient.invalidateQueries({ queryKey: ["plan-stats", planId] });
-      void queryClient.invalidateQueries({ queryKey: ["plan-history", planId] });
-    }
-  });
-}
-
-export function useRemovePlanCase(planId: number) {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (planCaseId: number) =>
-      apiRequest<void>(`/plans/${planId}/cases/${planCaseId}`, {
-        method: "DELETE"
-      }),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["plan-cases", planId] });
-      void queryClient.invalidateQueries({ queryKey: ["plan-stats", planId] });
-      void queryClient.invalidateQueries({ queryKey: ["plan-history", planId] });
-    }
-  });
-}
-
 export function usePlanCases(planId: number, status?: ExecutionStatus) {
   return useQuery({
     enabled: Number.isFinite(planId),
@@ -77,7 +27,7 @@ export function usePlanCases(planId: number, status?: ExecutionStatus) {
       apiRequest<Paginated<PlanCaseListItem>>(`/plans/${planId}/cases`, {
         query: {
           page: 1,
-          pageSize: 200,
+          pageSize: 100,
           sortBy: "updatedAt",
           sortOrder: "desc",
           status
@@ -152,7 +102,7 @@ export function usePlanHistory(planId: number) {
       apiRequest<Paginated<PlanCaseStatusHistory>>(`/plans/${planId}/history`, {
         query: {
           page: 1,
-          pageSize: 200,
+          pageSize: 100,
           sortBy: "createdAt",
           sortOrder: "desc"
         }

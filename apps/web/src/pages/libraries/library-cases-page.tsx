@@ -1,22 +1,13 @@
-import { useState, useMemo } from "react";
-import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, BookOpenText, Plus } from "@phosphor-icons/react";
+import { useState } from "react";
+import { useParams } from "react-router-dom";
+import { BookOpenText } from "@phosphor-icons/react";
 import { useLibrary } from "../../api/libraries";
-import { useCases, useCreateCase } from "../../api/cases";
+import { useCases } from "../../api/cases";
 import { useDirectoryTree } from "../../api/directories";
 import { DirectoryTree } from "../../components/directory-tree/directory-tree";
-import { TagManager } from "../../components/tag-manager";
-import { CaseForm, type DirectoryOption } from "../../components/case-form";
 import { CaseDetailSheet } from "../../components/case-detail-sheet";
 import { CaseFilters, type CaseFiltersValue } from "../../components/case-filters";
 import { PriorityBadge } from "../../components/priority-badge";
-import { Button } from "../../components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle
-} from "../../components/ui/dialog";
 import {
   Table,
   TableBody,
@@ -37,35 +28,8 @@ const caseTypeLabels: Record<string, string> = {
   other: "其他"
 };
 
-function flattenDirectories(
-  nodes: Array<{ id: number; name: string; children: Array<unknown> }>,
-  depth = 0
-): DirectoryOption[] {
-  const options: DirectoryOption[] = [];
-  for (const node of nodes) {
-    options.push({
-      value: node.id,
-      label: "　".repeat(depth) + node.name
-    });
-    if (node.children?.length) {
-      options.push(
-        ...flattenDirectories(
-          node.children as Array<{
-            id: number;
-            name: string;
-            children: Array<unknown>;
-          }>,
-          depth + 1
-        )
-      );
-    }
-  }
-  return options;
-}
-
 export function LibraryCasesPage() {
   const params = useParams();
-  const projectId = Number(params.projectId);
   const libraryId = Number(params.libraryId);
 
   const [selectedDirectoryId, setSelectedDirectoryId] = useState<number | null>(
@@ -73,10 +37,9 @@ export function LibraryCasesPage() {
   );
   const [selectedCaseId, setSelectedCaseId] = useState<number | null>(null);
   const [filters, setFilters] = useState<CaseFiltersValue>({});
-  const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
   const library = useLibrary(libraryId);
-  const { data: treeData } = useDirectoryTree(libraryId);
+  useDirectoryTree(libraryId);
   const casesQuery = useCases(libraryId, {
     directoryId: selectedDirectoryId ?? undefined,
     priority: filters.priority || undefined,
@@ -84,30 +47,16 @@ export function LibraryCasesPage() {
     tag: filters.tag,
     keyword: filters.keyword
   });
-  const createCase = useCreateCase(libraryId);
 
   const libraryName = library.data?.name ?? `用例库 ${libraryId}`;
   const cases = casesQuery.data?.items ?? [];
   const casesLoading = casesQuery.isLoading;
   const casesError = casesQuery.error;
 
-  const directoryOptions = useMemo(() => {
-    const tree = treeData ?? [];
-    const flat: DirectoryOption[] = [{ value: null, label: "未分类" }];
-    flat.push(...flattenDirectories(tree));
-    return flat;
-  }, [treeData]);
-
   return (
     <div className="flex flex-col h-full min-h-0">
       <header className="shrink-0 flex items-center justify-between gap-4 py-4 px-1">
         <div className="flex items-center gap-3 min-w-0">
-          <Button variant="ghost" size="icon" asChild>
-            <Link to={`/projects/${projectId}`}>
-              <ArrowLeft className="h-4 w-4" />
-              <span className="sr-only">返回项目</span>
-            </Link>
-          </Button>
           <div className="min-w-0">
             <h2 className="text-xl font-semibold tracking-tight truncate flex items-center gap-2">
               <BookOpenText
@@ -117,19 +66,9 @@ export function LibraryCasesPage() {
               {libraryName}
             </h2>
             <p className="text-sm text-muted-foreground">
-              用例 · 左侧目录树与标签，右侧列表与详情
+              用例浏览 · 左侧目录树，右侧列表与详情
             </p>
           </div>
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <Button
-            size="sm"
-            className="gap-1.5"
-            onClick={() => setCreateDialogOpen(true)}
-          >
-            <Plus className="h-4 w-4" weight="bold" />
-            新建用例
-          </Button>
         </div>
       </header>
 
@@ -146,9 +85,6 @@ export function LibraryCasesPage() {
             onSelect={setSelectedDirectoryId}
             className="flex-1 min-h-0"
           />
-          <div className="mt-3">
-            <TagManager libraryId={libraryId} />
-          </div>
         </aside>
 
         <main className="flex-1 min-w-0 flex flex-col rounded-xl border border-border/80 bg-card/50 overflow-hidden shadow-sm">
@@ -199,12 +135,12 @@ export function LibraryCasesPage() {
                         {caseTypeLabels[item.caseType] ?? item.caseType}
                       </TableCell>
                       <TableCell className="align-top py-3">
-                        <div className="flex flex-wrap gap-1 max-w-[120px]">
+                        <div className="flex flex-wrap gap-1">
                           {item.tags.slice(0, 3).map((tag) => (
                             <Badge
                               key={tag}
                               variant="secondary"
-                              className="text-xs font-normal truncate max-w-[36px]"
+                              className="text-xs font-normal whitespace-nowrap"
                             >
                               {tag}
                             </Badge>
@@ -232,7 +168,7 @@ export function LibraryCasesPage() {
                         colSpan={6}
                         className="text-center text-muted-foreground py-12"
                       >
-                        暂无用例。点击「新建用例」创建，或调整筛选条件。
+                        暂无用例，请通过 API 创建，或调整筛选条件。
                       </TableCell>
                     </TableRow>
                   )}
@@ -250,39 +186,7 @@ export function LibraryCasesPage() {
         onOpenChange={(open) => {
           if (!open) setSelectedCaseId(null);
         }}
-        onCaseUpdated={() => {
-          void casesQuery.refetch();
-        }}
-        onCaseDeleted={() => {
-          setSelectedCaseId(null);
-          void casesQuery.refetch();
-        }}
       />
-
-      <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
-          <DialogHeader>
-            <DialogTitle>新建用例</DialogTitle>
-          </DialogHeader>
-          <div className="overflow-y-auto flex-1 min-h-0 -mx-6 px-6">
-            <CaseForm
-              mode="create"
-              libraryId={libraryId}
-              directoryOptions={directoryOptions}
-              onSubmit={(payload) => {
-                createCase.mutate(payload as import("@testhub/shared").CreateCaseInput, {
-                  onSuccess: () => {
-                    setCreateDialogOpen(false);
-                    void casesQuery.refetch();
-                  }
-                });
-              }}
-              onCancel={() => setCreateDialogOpen(false)}
-              loading={createCase.isPending}
-            />
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

@@ -38,27 +38,6 @@ export function usePlanStats(planId: number) {
   });
 }
 
-export function useCreatePlan(projectId: number) {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (payload: {
-      name: string;
-      description?: string;
-      startDate?: string;
-      endDate?: string;
-      status?: "draft" | "in_progress" | "completed" | "archived";
-    }) =>
-      apiRequest<Plan>(`/projects/${projectId}/plans`, {
-        method: "POST",
-        body: JSON.stringify(payload)
-      }),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["plans", projectId] });
-    }
-  });
-}
-
 export function useUpdatePlan(projectId: number) {
   const queryClient = useQueryClient();
 
@@ -81,18 +60,6 @@ export function useUpdatePlan(projectId: number) {
     onSuccess: (_data, variables) => {
       void queryClient.invalidateQueries({ queryKey: ["plans", projectId] });
       void queryClient.invalidateQueries({ queryKey: ["plan", variables.id] });
-    }
-  });
-}
-
-export function useDeletePlan(projectId: number) {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (id: number) =>
-      apiRequest<void>(`/plans/${id}`, { method: "DELETE" }),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["plans", projectId] });
     }
   });
 }

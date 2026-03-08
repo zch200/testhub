@@ -21,3 +21,6 @@ coverage
 
 # Vite
 apps/web/.vite
+
+# Claude Code worktrees
+.claude/worktrees/
