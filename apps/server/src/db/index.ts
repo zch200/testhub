@@ -1,12 +1,9 @@
 import { existsSync, mkdirSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { dirname } from "node:path";
 import Database from "better-sqlite3";
 import { drizzle, type BetterSQLite3Database } from "drizzle-orm/better-sqlite3";
 import * as schema from "./schema";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+import { getDbPath } from "./paths";
 
 type DbInstance = BetterSQLite3Database<typeof schema>;
 
@@ -14,11 +11,11 @@ let _db: DbInstance | null = null;
 
 /** 生产环境延迟初始化 */
 function createDefaultDb(): DbInstance {
-  const dataDir = join(__dirname, "../../data");
+  const dbPath = getDbPath();
+  const dataDir = dirname(dbPath);
   if (!existsSync(dataDir)) {
     mkdirSync(dataDir, { recursive: true });
   }
-  const dbPath = join(dataDir, "testhub.db");
   const sqlite = new Database(dbPath);
   sqlite.pragma("foreign_keys = ON");
   return drizzle(sqlite, { schema });

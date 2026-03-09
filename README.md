@@ -218,8 +218,10 @@ curl -X POST http://127.0.0.1:4010/api/v1/plans/1/cases \
 
 ## 数据文件
 
-- SQLite: `apps/server/data/testhub.db`
+- SQLite: `apps/server/data/testhub.db`（默认路径，可通过 `TESTHUB_DB_PATH` 环境变量覆盖）
 - API token: `apps/server/data/api-token`
+
+> 开发建议：开发分支时设置 `TESTHUB_DB_PATH=dev.db`（相对路径会解析到 data/ 目录下），避免开发数据污染正式数据库。
 
 ## 常见问题
 

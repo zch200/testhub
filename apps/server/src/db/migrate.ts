@@ -1,14 +1,7 @@
 import { mkdirSync, readFileSync, readdirSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname } from "node:path";
 import Database from "better-sqlite3";
-import { fileURLToPath } from "node:url";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-const migrationsDir = join(__dirname, "migrations");
-const dataDir = join(__dirname, "../../data");
-const dbPath = join(dataDir, "testhub.db");
+import { getDbPath, getMigrationsDir } from "./paths";
 
 /** 在指定的 better-sqlite3 Database 实例上执行 migrations */
 export function runMigrationsOnDb(db: InstanceType<typeof Database>): void {
@@ -21,6 +14,7 @@ export function runMigrationsOnDb(db: InstanceType<typeof Database>): void {
     );
   `);
 
+  const migrationsDir = getMigrationsDir();
   const rows = db.prepare("SELECT name FROM __migrations").all() as Array<{ name: string }>;
   const applied = new Set(rows.map((row) => row.name));
 
@@ -33,7 +27,7 @@ export function runMigrationsOnDb(db: InstanceType<typeof Database>): void {
       continue;
     }
 
-    const sql = readFileSync(join(migrationsDir, file), "utf8");
+    const sql = readFileSync(`${migrationsDir}/${file}`, "utf8");
     const now = new Date().toISOString();
 
     const tx = db.transaction(() => {
@@ -49,7 +43,8 @@ export function runMigrationsOnDb(db: InstanceType<typeof Database>): void {
 
 /** 生产环境：打开本地 DB 文件，跑 migrations 后关闭 */
 export function runMigrations(): void {
-  mkdirSync(dataDir, { recursive: true });
+  const dbPath = getDbPath();
+  mkdirSync(dirname(dbPath), { recursive: true });
   const db = new Database(dbPath);
 
   runMigrationsOnDb(db);

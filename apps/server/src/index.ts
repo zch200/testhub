@@ -1,4 +1,5 @@
 import { buildApp } from "./app";
+import { getDbPath } from "./db/paths";
 import { runMigrations } from "./db/migrate";
 import { getApiToken, getBootId } from "./utils/auth";
 
@@ -16,6 +17,7 @@ async function start() {
     await app.listen({ host, port });
     const base = `http://${host}:${port}`;
     app.log.info(`TestHub server running at ${base}`);
+    app.log.info(`Database: ${getDbPath()}`);
     app.log.info(`Swagger docs: ${base}/api/docs`);
     app.log.info(`Agent skill guide: ${base}/skill.md`);
     app.log.info(`API token (copy to scripts): ${token}`);
