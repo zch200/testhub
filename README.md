@@ -101,6 +101,23 @@ Web UI 在每次 `bootId` 变化后会弹窗，支持一键复制 token。
 
 > 说明：当前实现中 `/api/v1/auth/*` 也在鉴权保护下，仍需携带 `x-testhub-token`。
 
+## Agent 集成
+
+TestHub 为 AI Agent（Claude Code、Cursor 等）提供了开箱即用的集成方案。
+
+启动服务后，终端会输出：
+
+```
+Agent skill guide: http://127.0.0.1:4010/skill.md
+API token: <TOKEN>
+```
+
+将 skill guide URL 发送给 Agent，它会获得一份包含数据模型、工作流示例和完整 curl 命令的指南，可以立即开始调用 API。
+
+- **Skill Guide**：`http://<host>:<port>/skill.md` — 面向 Agent 的集成指南（动态注入当前地址和 token）
+- **OpenAPI Spec**：`http://<host>:<port>/api/docs/json` — 完整的 OpenAPI 3.0 规范
+- **Swagger UI**：`http://<host>:<port>/api/docs` — 交互式 API 浏览器
+
 ## 常用命令
 
 | 命令 | 说明 |
@@ -235,11 +252,7 @@ npm run install
 
 ## 开源说明
 
-欢迎 PR / Issue。后续计划完善：
-
-- 更完整的用例管理 UI（目录树交互、筛选体验）
-- 导入/导出能力
-- 更细粒度的 API 文档与示例脚本
+本项目基于 [MIT License](./LICENSE) 开源，欢迎 PR / Issue。
 
 ## 开发工作流
 

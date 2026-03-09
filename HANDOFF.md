@@ -1,18 +1,18 @@
 # 项目交接状态
-最后更新: 2026-03-08 会话主题: v2.1.0 + v2.1.1 全部完成
+最后更新: 2026-03-09 会话主题: Agent 集成方案 + 开源项目完善
 
 ## 当前进展
-- [已完成] v2.1.0 全部阶段（1-4）
-- [已完成] v2.1.1 交互优化：进度改通过率、状态下拉+自动跳转、Tab 合并
-- [已完成] 需求文档 + README 同步更新至 v2.1.1
-- [已完成] typecheck + build + 252 测试全通过
+- [已完成] docs/SKILL.md Agent 集成指南（~190 行，5 个工作流 + curl 示例）
+- [已完成] GET /skill.md 动态端点（注入 baseUrl + token）
+- [已完成] 启动自检 OpenAPI spec + 日志输出 skill guide URL
+- [已完成] 修复 @fastify/swagger OpenAPI spec 500（补 jsonSchemaTransform）
+- [已完成] LICENSE (MIT)、.env.example、package.json engines、README Agent 集成章节
+- [待合并] feat/agent-skill-endpoint 分支
 
-## 关键变更
-- `plan_case_remarks` 表：一对多备注，替代原 `plan_cases.remark` 列
-- `plan-case-execution-drawer.tsx`：执行抽屉（下拉状态选择器、自动进入下条、用例&备注合并 Tab）
-- 计划概览进度 = passed/total（通过率），非 done/total
-- sonner toast 已集成（main.tsx 添加 Toaster）
+## 未解决的问题
+- main 分支有遗留类型错误（plan-cases.ts 缺少 shared 导出、web 缺 sonner 类型声明），不影响构建和运行
 
 ## 下次会话建议
-- 分支 feat/plan-optimization 可合并回 main
-- 可考虑功能增强：备注删除、用例筛选过滤、拖拽排序等
+- GitHub Actions CI 工作流（PR 检查：typecheck + build + test）
+- CHANGELOG.md（从 git log 整理）
+- 可选：Dockerfile、ESLint/Prettier 配置、项目截图

@@ -1,12 +1,12 @@
 import { existsSync, readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import fastify from "fastify";
 import cors from "@fastify/cors";
 import fastifyStatic from "@fastify/static";
 import swagger from "@fastify/swagger";
 import swaggerUi from "@fastify/swagger-ui";
-import { serializerCompiler, validatorCompiler } from "fastify-type-provider-zod";
+import { jsonSchemaTransform, serializerCompiler, validatorCompiler } from "fastify-type-provider-zod";
 import { registerAuthRoutes } from "./routes/auth";
 import { registerCaseRoutes } from "./routes/cases";
 import { registerDirectoryRoutes } from "./routes/directories";
@@ -42,11 +42,30 @@ export function buildApp(options?: BuildAppOptions) {
         title: "TestHub API",
         version: "0.1.0"
       }
-    }
+    },
+    transform: jsonSchemaTransform
   });
 
   app.register(swaggerUi, {
     routePrefix: "/api/docs"
+  });
+
+  // GET /skill.md — dynamically inject baseUrl for agent consumption
+  app.get("/skill.md", (request, reply) => {
+    const skillPath = resolve(__dirname, "../../../docs/SKILL.md");
+    if (!existsSync(skillPath)) {
+      return reply.status(404).send({ error: "SKILL.md not found" });
+    }
+
+    const protocol = request.headers["x-forwarded-proto"] ?? "http";
+    const host = request.headers.host ?? "localhost";
+    const baseUrl = `${protocol}://${host}`;
+
+    let content = readFileSync(skillPath, "utf8");
+    content = content.replaceAll("{{baseUrl}}", baseUrl);
+    content = content.replaceAll("{{token}}", getApiToken());
+
+    return reply.type("text/markdown; charset=utf-8").send(content);
   });
 
   app.get("/runtime-config.js", (_request, reply) => {
