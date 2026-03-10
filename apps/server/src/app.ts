@@ -20,6 +20,7 @@ import { getApiToken, getBootId, verifyApiToken } from "./utils/auth";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+const BUNDLED = process.env.TESTHUB_BUNDLED === "1";
 
 export interface BuildAppOptions {
   logger?: boolean;
@@ -52,7 +53,9 @@ export function buildApp(options?: BuildAppOptions) {
 
   // GET /skill.md — dynamically inject baseUrl for agent consumption
   app.get("/skill.md", (request, reply) => {
-    const skillPath = resolve(__dirname, "../../../docs/SKILL.md");
+    const skillPath = BUNDLED
+      ? join(__dirname, "SKILL.md")
+      : resolve(__dirname, "../../../docs/SKILL.md");
     if (!existsSync(skillPath)) {
       return reply.status(404).send({ error: "SKILL.md not found" });
     }
@@ -94,7 +97,9 @@ export function buildApp(options?: BuildAppOptions) {
     { prefix: "/api/v1" }
   );
 
-  const publicDir = join(__dirname, "../public");
+  const publicDir = BUNDLED
+    ? join(__dirname, "public")
+    : join(__dirname, "../public");
   const indexHtmlPath = join(publicDir, "index.html");
   if (existsSync(publicDir)) {
     app.register(fastifyStatic, {

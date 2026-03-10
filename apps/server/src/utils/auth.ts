@@ -1,13 +1,11 @@
 import { createHash, randomBytes } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 import type { FastifyReply, FastifyRequest } from "fastify";
+import { getDataDir } from "../db/paths";
 import { AppError } from "./errors";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-const dataDir = join(__dirname, "../../data");
+const dataDir = getDataDir();
 const tokenFile = join(dataDir, "api-token");
 
 let runtimeToken = "";

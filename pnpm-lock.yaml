@@ -194,6 +194,34 @@ importers:
         specifier: ^4.0.18
         version: 4.0.18(@types/node@22.19.10)(jiti@1.21.7)(jsdom@28.1.0)(tsx@4.21.0)(yaml@2.8.2)
 
+  packages/cli:
+    dependencies:
+      '@fastify/swagger-ui':
+        specifier: ^5.2.2
+        version: 5.2.5
+      better-sqlite3:
+        specifier: ^11.7.0
+        version: 11.10.0
+    devDependencies:
+      '@testhub/server':
+        specifier: workspace:*
+        version: link:../../apps/server
+      '@testhub/web':
+        specifier: workspace:*
+        version: link:../../apps/web
+      '@types/node':
+        specifier: ^22.10.5
+        version: 22.19.10
+      esbuild:
+        specifier: ^0.25.0
+        version: 0.25.12
+      tsx:
+        specifier: ^4.19.2
+        version: 4.21.0
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.3
+
   packages/shared:
     dependencies:
       zod:

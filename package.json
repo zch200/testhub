@@ -17,7 +17,9 @@
     "db:migrate": "pnpm --filter @testhub/server db:migrate",
     "test": "turbo run test",
     "test:coverage": "turbo run test -- --coverage",
-    "test:watch": "pnpm --filter @testhub/server test:watch"
+    "test:watch": "pnpm --filter @testhub/server test:watch",
+    "build:cli": "turbo run build --filter=@testhub/web --filter=@testhub/shared && pnpm --filter testhub-app run build",
+    "publish:cli": "pnpm build:cli && pnpm --filter testhub-app publish"
   },
   "devDependencies": {
     "@types/node": "^22.10.5",

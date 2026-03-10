@@ -1,0 +1,44 @@
+{
+  "name": "testhub-app",
+  "version": "0.1.0",
+  "description": "Local-first test management tool — lightweight alternative to cloud testing platforms",
+  "bin": {
+    "testhub": "./dist/bin.mjs"
+  },
+  "files": [
+    "dist/"
+  ],
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "keywords": [
+    "testing",
+    "test-management",
+    "local-first",
+    "api",
+    "rest"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zch200/testhub.git",
+    "directory": "packages/cli"
+  },
+  "homepage": "https://github.com/zch200/testhub#readme",
+  "dependencies": {
+    "@fastify/swagger-ui": "^5.2.2",
+    "better-sqlite3": "^11.7.0"
+  },
+  "devDependencies": {
+    "@testhub/server": "workspace:*",
+    "@testhub/web": "workspace:*",
+    "@types/node": "^22.10.5",
+    "esbuild": "^0.25.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  },
+  "scripts": {
+    "build": "tsx scripts/build.ts",
+    "typecheck": "echo 'skip'"
+  }
+}
