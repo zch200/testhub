@@ -1,5 +1,6 @@
 import { and, asc, desc, eq, exists, inArray, like, sql } from "drizzle-orm";
-import type { batchCreateCaseSchema, createCaseSchema, updateCaseSchema } from "@testhub/shared";
+import type { batchCreateCaseSchema, batchDeleteCaseSchema, batchUpdateCaseSchema, createCaseSchema, updateCaseSchema } from "@testhub/shared";
+import type { Case, CaseVersion } from "@testhub/shared";
 import type { z } from "zod";
 import { db } from "../db";
 import {
@@ -27,6 +28,7 @@ interface ListCasesQuery {
   priority?: "P0" | "P1" | "P2" | "P3";
   type?: "functional" | "performance" | "api" | "ui" | "other";
   tag?: string;
+  tagOp: "and" | "or";
   keyword?: string;
 }
 
@@ -40,6 +42,8 @@ interface ListCaseVersionsQuery {
 type CreateCaseInput = z.infer<typeof createCaseSchema>;
 type UpdateCaseInput = z.infer<typeof updateCaseSchema>;
 type BatchCreateCaseInput = z.infer<typeof batchCreateCaseSchema>;
+type BatchUpdateCaseInput = z.infer<typeof batchUpdateCaseSchema>;
+type BatchDeleteCaseInput = z.infer<typeof batchDeleteCaseSchema>;
 
 function buildSort(sortBy: ListCasesQuery["sortBy"], sortOrder: ListCasesQuery["sortOrder"]) {
   const dir = sortOrder === "asc" ? asc : desc;
@@ -55,7 +59,7 @@ function buildSort(sortBy: ListCasesQuery["sortBy"], sortOrder: ListCasesQuery["
   return dir(cases.updatedAt);
 }
 
-function mapCase(row: typeof cases.$inferSelect, tagNames: string[], steps: Array<{ stepOrder: number; action: string; expected?: string }>) {
+function mapCase(row: typeof cases.$inferSelect, tagNames: string[], steps: Array<{ stepOrder: number; action: string; expected?: string }>): Case {
   return {
     id: row.id,
     libraryId: row.libraryId,
@@ -63,11 +67,11 @@ function mapCase(row: typeof cases.$inferSelect, tagNames: string[], steps: Arra
     latestVersionNo: row.latestVersionNo,
     title: row.title,
     precondition: row.precondition,
-    contentType: row.contentType,
+    contentType: row.contentType as Case["contentType"],
     textContent: row.textContent,
     textExpected: row.textExpected,
-    priority: row.priority,
-    caseType: row.caseType,
+    priority: row.priority as Case["priority"],
+    caseType: row.caseType as Case["caseType"],
     tags: tagNames,
     steps,
     createdAt: row.createdAt,
@@ -75,18 +79,18 @@ function mapCase(row: typeof cases.$inferSelect, tagNames: string[], steps: Arra
   };
 }
 
-function mapCaseVersion(row: typeof caseVersions.$inferSelect) {
+function mapCaseVersion(row: typeof caseVersions.$inferSelect): CaseVersion {
   return {
     id: row.id,
     caseId: row.caseId,
     versionNo: row.versionNo,
     title: row.title,
     precondition: row.precondition,
-    contentType: row.contentType,
+    contentType: row.contentType as CaseVersion["contentType"],
     textContent: row.textContent,
     textExpected: row.textExpected,
-    priority: row.priority,
-    caseType: row.caseType,
+    priority: row.priority as CaseVersion["priority"],
+    caseType: row.caseType as CaseVersion["caseType"],
     tags: parseTagsJson(row.tagsJson),
     steps: parseStepsJson(row.stepsJson),
     createdAt: row.createdAt
@@ -304,16 +308,43 @@ export function listCases(libraryId: number, query: ListCasesQuery) {
     whereClause = and(whereClause, like(cases.title, `%${query.keyword}%`)) as typeof whereClause;
   }
   if (query.tag) {
-    whereClause = and(
-      whereClause,
-      exists(
-        db
-          .select({ one: sql`1` })
-          .from(caseTags)
-          .innerJoin(tags, eq(caseTags.tagId, tags.id))
-          .where(and(eq(caseTags.caseId, cases.id), eq(tags.name, query.tag)))
-      )
-    ) as typeof whereClause;
+    const tagList = query.tag.split(",").map((t) => t.trim()).filter((t) => t.length > 0);
+    if (tagList.length === 1) {
+      whereClause = and(
+        whereClause,
+        exists(
+          db
+            .select({ one: sql`1` })
+            .from(caseTags)
+            .innerJoin(tags, eq(caseTags.tagId, tags.id))
+            .where(and(eq(caseTags.caseId, cases.id), eq(tags.name, tagList[0])))
+        )
+      ) as typeof whereClause;
+    } else if (tagList.length > 1 && query.tagOp === "or") {
+      whereClause = and(
+        whereClause,
+        exists(
+          db
+            .select({ one: sql`1` })
+            .from(caseTags)
+            .innerJoin(tags, eq(caseTags.tagId, tags.id))
+            .where(and(eq(caseTags.caseId, cases.id), inArray(tags.name, tagList)))
+        )
+      ) as typeof whereClause;
+    } else if (tagList.length > 1) {
+      for (const tagName of tagList) {
+        whereClause = and(
+          whereClause,
+          exists(
+            db
+              .select({ one: sql`1` })
+              .from(caseTags)
+              .innerJoin(tags, eq(caseTags.tagId, tags.id))
+              .where(and(eq(caseTags.caseId, cases.id), eq(tags.name, tagName)))
+          )
+        ) as typeof whereClause;
+      }
+    }
   }
 
   const rows = db
@@ -491,4 +522,46 @@ export function getCaseVersion(caseId: number, versionNo: number) {
 
   assertOrThrow(row, 404, "用例版本不存在");
   return mapCaseVersion(row);
+}
+
+export function batchUpdateCases(libraryId: number, input: BatchUpdateCaseInput) {
+  ensureLibraryExists(libraryId);
+  const result = [];
+  for (const item of input.cases) {
+    const { id, ...updateFields } = item;
+    const existing = db.select({ id: cases.id, libraryId: cases.libraryId }).from(cases).where(eq(cases.id, id)).get();
+    assertOrThrow(existing, 404, `用例 ${id} 不存在`);
+    if (existing.libraryId !== libraryId) {
+      throw new AppError(400, `用例 ${id} 不属于该用例库`);
+    }
+    result.push(updateCase(id, updateFields));
+  }
+  return result;
+}
+
+export function batchDeleteCases(libraryId: number, input: BatchDeleteCaseInput) {
+  ensureLibraryExists(libraryId);
+  const deleted: number[] = [];
+  const skipped: Array<{ id: number; reason: string }> = [];
+
+  for (const id of input.caseIds) {
+    const existing = db.select({ id: cases.id, libraryId: cases.libraryId }).from(cases).where(eq(cases.id, id)).get();
+    if (!existing) {
+      skipped.push({ id, reason: "用例不存在" });
+      continue;
+    }
+    if (existing.libraryId !== libraryId) {
+      skipped.push({ id, reason: "用例不属于该用例库" });
+      continue;
+    }
+    const inPlan = db.select({ id: planCases.id }).from(planCases).where(eq(planCases.caseId, id)).get();
+    if (inPlan) {
+      skipped.push({ id, reason: "用例已被测试计划引用" });
+      continue;
+    }
+    db.delete(cases).where(eq(cases.id, id)).run();
+    deleted.push(id);
+  }
+
+  return { deleted, skipped };
 }

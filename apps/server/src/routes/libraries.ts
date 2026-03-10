@@ -1,4 +1,4 @@
-import { createLibrarySchema, idParamSchema, libraryListQuerySchema, updateLibrarySchema } from "@testhub/shared";
+import { createLibrarySchema, idParamSchema, libraryListQuerySchema, libraryListResponseSchema, librarySchema, updateLibrarySchema } from "@testhub/shared";
 import { z } from "zod";
 import type { FastifyInstance } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
@@ -14,28 +14,28 @@ export async function registerLibraryRoutes(app: FastifyInstance): Promise<void>
   server.route({
     method: "GET",
     url: "/projects/:projectId/libraries",
-    schema: { params: projectIdParamSchema, querystring: libraryListQuerySchema },
+    schema: { params: projectIdParamSchema, querystring: libraryListQuerySchema, response: { 200: libraryListResponseSchema } },
     handler: (request) => listLibraries(request.params.projectId, request.query)
   });
 
   server.route({
     method: "POST",
     url: "/projects/:projectId/libraries",
-    schema: { params: projectIdParamSchema, body: createLibrarySchema },
+    schema: { params: projectIdParamSchema, body: createLibrarySchema, response: { 200: librarySchema } },
     handler: (request) => createLibrary(request.params.projectId, request.body)
   });
 
   server.route({
     method: "GET",
     url: "/libraries/:id",
-    schema: { params: idParamSchema },
+    schema: { params: idParamSchema, response: { 200: librarySchema } },
     handler: (request) => getLibraryById(request.params.id)
   });
 
   server.route({
     method: "PUT",
     url: "/libraries/:id",
-    schema: { params: idParamSchema, body: updateLibrarySchema },
+    schema: { params: idParamSchema, body: updateLibrarySchema, response: { 200: librarySchema } },
     handler: (request) => updateLibrary(request.params.id, request.body)
   });
 

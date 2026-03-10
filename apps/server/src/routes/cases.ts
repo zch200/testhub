@@ -1,8 +1,33 @@
-import { batchCreateCaseSchema, caseListQuerySchema, createCaseSchema, idParamSchema, pageQuerySchema, updateCaseSchema } from "@testhub/shared";
+import {
+  batchCreateCaseSchema,
+  batchDeleteCaseResponseSchema,
+  batchDeleteCaseSchema,
+  batchUpdateCaseSchema,
+  caseListQuerySchema,
+  caseListResponseSchema,
+  caseSchema,
+  caseVersionListResponseSchema,
+  caseVersionSchema,
+  createCaseSchema,
+  idParamSchema,
+  pageQuerySchema,
+  updateCaseSchema
+} from "@testhub/shared";
 import { z } from "zod";
 import type { FastifyInstance } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
-import { batchCreateCases, createCase, deleteCase, getCaseById, getCaseVersion, listCases, listCaseVersions, updateCase } from "../services/case.service";
+import {
+  batchCreateCases,
+  batchDeleteCases,
+  batchUpdateCases,
+  createCase,
+  deleteCase,
+  getCaseById,
+  getCaseVersion,
+  listCases,
+  listCaseVersions,
+  updateCase
+} from "../services/case.service";
 
 const libraryIdParamSchema = z.object({
   libraryId: z.coerce.number().int().positive()
@@ -23,35 +48,49 @@ export async function registerCaseRoutes(app: FastifyInstance): Promise<void> {
   server.route({
     method: "GET",
     url: "/libraries/:libraryId/cases",
-    schema: { params: libraryIdParamSchema, querystring: caseListQuerySchema },
+    schema: { params: libraryIdParamSchema, querystring: caseListQuerySchema, response: { 200: caseListResponseSchema } },
     handler: (request) => listCases(request.params.libraryId, request.query)
   });
 
   server.route({
     method: "POST",
     url: "/libraries/:libraryId/cases",
-    schema: { params: libraryIdParamSchema, body: createCaseSchema },
+    schema: { params: libraryIdParamSchema, body: createCaseSchema, response: { 200: caseSchema } },
     handler: (request) => createCase(request.params.libraryId, request.body)
   });
 
   server.route({
     method: "POST",
     url: "/libraries/:libraryId/cases/batch",
-    schema: { params: libraryIdParamSchema, body: batchCreateCaseSchema },
+    schema: { params: libraryIdParamSchema, body: batchCreateCaseSchema, response: { 200: z.array(caseSchema) } },
     handler: (request) => batchCreateCases(request.params.libraryId, request.body)
+  });
+
+  server.route({
+    method: "PUT",
+    url: "/libraries/:libraryId/cases/batch",
+    schema: { params: libraryIdParamSchema, body: batchUpdateCaseSchema, response: { 200: z.array(caseSchema) } },
+    handler: (request) => batchUpdateCases(request.params.libraryId, request.body)
+  });
+
+  server.route({
+    method: "DELETE",
+    url: "/libraries/:libraryId/cases/batch",
+    schema: { params: libraryIdParamSchema, body: batchDeleteCaseSchema, response: { 200: batchDeleteCaseResponseSchema } },
+    handler: (request) => batchDeleteCases(request.params.libraryId, request.body)
   });
 
   server.route({
     method: "GET",
     url: "/cases/:id",
-    schema: { params: idParamSchema },
+    schema: { params: idParamSchema, response: { 200: caseSchema } },
     handler: (request) => getCaseById(request.params.id)
   });
 
   server.route({
     method: "PUT",
     url: "/cases/:id",
-    schema: { params: idParamSchema, body: updateCaseSchema },
+    schema: { params: idParamSchema, body: updateCaseSchema, response: { 200: caseSchema } },
     handler: (request) => updateCase(request.params.id, request.body)
   });
 
@@ -68,14 +107,14 @@ export async function registerCaseRoutes(app: FastifyInstance): Promise<void> {
   server.route({
     method: "GET",
     url: "/cases/:id/versions",
-    schema: { params: idParamSchema, querystring: caseVersionListQuerySchema },
+    schema: { params: idParamSchema, querystring: caseVersionListQuerySchema, response: { 200: caseVersionListResponseSchema } },
     handler: (request) => listCaseVersions(request.params.id, request.query)
   });
 
   server.route({
     method: "GET",
     url: "/cases/:id/versions/:versionNo",
-    schema: { params: caseVersionParamsSchema },
+    schema: { params: caseVersionParamsSchema, response: { 200: caseVersionSchema } },
     handler: (request) => getCaseVersion(request.params.id, request.params.versionNo)
   });
 }

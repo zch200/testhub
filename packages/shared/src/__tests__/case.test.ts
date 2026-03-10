@@ -4,6 +4,8 @@ import {
   createCaseSchema,
   updateCaseSchema,
   batchCreateCaseSchema,
+  batchUpdateCaseSchema,
+  batchDeleteCaseSchema,
   caseListQuerySchema,
 } from "../schemas/case";
 
@@ -185,6 +187,59 @@ describe("batchCreateCaseSchema", () => {
   });
 });
 
+describe("batchUpdateCaseSchema", () => {
+  it("接受带 id 的部分更新", () => {
+    const result = batchUpdateCaseSchema.parse({
+      cases: [{ id: 1, title: "新标题" }],
+    });
+    expect(result.cases).toHaveLength(1);
+    expect(result.cases[0].id).toBe(1);
+    expect(result.cases[0].title).toBe("新标题");
+  });
+
+  it("接受多条更新", () => {
+    const result = batchUpdateCaseSchema.parse({
+      cases: [
+        { id: 1, title: "标题1", priority: "P0" },
+        { id: 2, priority: "P2" },
+      ],
+    });
+    expect(result.cases).toHaveLength(2);
+  });
+
+  it("拒绝空数组", () => {
+    expect(() => batchUpdateCaseSchema.parse({ cases: [] })).toThrow("请至少选择一条用例");
+  });
+
+  it("id 必须为正整数", () => {
+    expect(() =>
+      batchUpdateCaseSchema.parse({ cases: [{ id: -1, title: "x" }] })
+    ).toThrow();
+  });
+
+  it("拒绝非法 priority", () => {
+    expect(() =>
+      batchUpdateCaseSchema.parse({ cases: [{ id: 1, priority: "P9" }] })
+    ).toThrow();
+  });
+});
+
+describe("batchDeleteCaseSchema", () => {
+  it("接受 caseIds 数组", () => {
+    const result = batchDeleteCaseSchema.parse({ caseIds: [1, 2, 3] });
+    expect(result.caseIds).toEqual([1, 2, 3]);
+  });
+
+  it("拒绝空数组", () => {
+    expect(() => batchDeleteCaseSchema.parse({ caseIds: [] })).toThrow("请至少选择一条用例");
+  });
+
+  it("id 必须为正整数", () => {
+    expect(() => batchDeleteCaseSchema.parse({ caseIds: [0] })).toThrow();
+    expect(() => batchDeleteCaseSchema.parse({ caseIds: [-1] })).toThrow();
+  });
+});
+
 describe("caseListQuerySchema", () => {
   it("使用默认值", () => {
     const result = caseListQuerySchema.parse({});
@@ -212,5 +267,24 @@ describe("caseListQuerySchema", () => {
 
   it("拒绝非法 type 筛选", () => {
     expect(() => caseListQuerySchema.parse({ type: "invalid" })).toThrow();
+  });
+
+  it("tagOp 默认为 and", () => {
+    const result = caseListQuerySchema.parse({});
+    expect(result.tagOp).toBe("and");
+  });
+
+  it("接受 tagOp=or", () => {
+    const result = caseListQuerySchema.parse({ tagOp: "or" });
+    expect(result.tagOp).toBe("or");
+  });
+
+  it("拒绝非法 tagOp", () => {
+    expect(() => caseListQuerySchema.parse({ tagOp: "xor" })).toThrow();
+  });
+
+  it("接受逗号分隔的 tag 参数", () => {
+    const result = caseListQuerySchema.parse({ tag: "layer:ui,req:login" });
+    expect(result.tag).toBe("layer:ui,req:login");
   });
 });

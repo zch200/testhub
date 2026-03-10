@@ -1,12 +1,18 @@
 import {
   addPlanCasesByDirectorySchema,
+  addPlanCasesResponseSchema,
   batchUpdatePlanCaseStatusSchema,
   createPlanCaseRemarkSchema,
   createPlanCasesSchema,
   pageQuerySchema,
-  planCaseHistoryListQuerySchema,
+  planCaseDetailListResponseSchema,
+  planCaseHistoryListResponseSchema,
   planCaseListQuerySchema,
+  planCaseRemarkListResponseSchema,
+  planCaseRemarkSchema,
   planCaseRemarkListQuerySchema,
+  planCaseHistoryListQuerySchema,
+  planCaseSchema,
   updatePlanCaseSchema
 } from "@testhub/shared";
 import { z } from "zod";
@@ -45,21 +51,21 @@ export async function registerPlanCaseRoutes(app: FastifyInstance): Promise<void
   server.route({
     method: "GET",
     url: "/plans/:planId/cases",
-    schema: { params: planIdParamSchema, querystring: planCaseListQuerySchema },
+    schema: { params: planIdParamSchema, querystring: planCaseListQuerySchema, response: { 200: planCaseDetailListResponseSchema } },
     handler: (request) => listPlanCases(request.params.planId, request.query)
   });
 
   server.route({
     method: "POST",
     url: "/plans/:planId/cases",
-    schema: { params: planIdParamSchema, body: createPlanCasesSchema },
+    schema: { params: planIdParamSchema, body: createPlanCasesSchema, response: { 200: addPlanCasesResponseSchema } },
     handler: (request) => addPlanCases(request.params.planId, request.body, resolveOperator(request), resolveSource(request))
   });
 
   server.route({
     method: "POST",
     url: "/plans/:planId/cases/by-directory",
-    schema: { params: planIdParamSchema, body: addPlanCasesByDirectorySchema },
+    schema: { params: planIdParamSchema, body: addPlanCasesByDirectorySchema, response: { 200: addPlanCasesResponseSchema } },
     handler: (request) =>
       addPlanCasesByDirectory(request.params.planId, request.body, resolveOperator(request), resolveSource(request))
   });
@@ -67,7 +73,7 @@ export async function registerPlanCaseRoutes(app: FastifyInstance): Promise<void
   server.route({
     method: "PUT",
     url: "/plans/:planId/cases/:planCaseId",
-    schema: { params: planCaseIdParamSchema, body: updatePlanCaseSchema },
+    schema: { params: planCaseIdParamSchema, body: updatePlanCaseSchema, response: { 200: planCaseSchema } },
     handler: (request) =>
       updatePlanCase(request.params.planId, request.params.planCaseId, request.body, resolveOperator(request), resolveSource(request))
   });
@@ -95,7 +101,7 @@ export async function registerPlanCaseRoutes(app: FastifyInstance): Promise<void
   server.route({
     method: "POST",
     url: "/plans/:planId/cases/:planCaseId/remarks",
-    schema: { params: planCaseIdParamSchema, body: createPlanCaseRemarkSchema },
+    schema: { params: planCaseIdParamSchema, body: createPlanCaseRemarkSchema, response: { 201: planCaseRemarkSchema } },
     handler: (request, reply) => {
       const result = addPlanCaseRemark(request.params.planId, request.params.planCaseId, request.body.content);
       reply.status(201).send(result);
@@ -105,21 +111,21 @@ export async function registerPlanCaseRoutes(app: FastifyInstance): Promise<void
   server.route({
     method: "GET",
     url: "/plans/:planId/cases/:planCaseId/remarks",
-    schema: { params: planCaseIdParamSchema, querystring: planCaseRemarkListQuerySchema },
+    schema: { params: planCaseIdParamSchema, querystring: planCaseRemarkListQuerySchema, response: { 200: planCaseRemarkListResponseSchema } },
     handler: (request) => listPlanCaseRemarks(request.params.planId, request.params.planCaseId, request.query)
   });
 
   server.route({
     method: "GET",
     url: "/plans/:planId/cases/:planCaseId/history",
-    schema: { params: planCaseIdParamSchema, querystring: planCaseHistoryListQuerySchema },
+    schema: { params: planCaseIdParamSchema, querystring: planCaseHistoryListQuerySchema, response: { 200: planCaseHistoryListResponseSchema } },
     handler: (request) => listPlanCaseHistory(request.params.planId, request.params.planCaseId, request.query)
   });
 
   server.route({
     method: "GET",
     url: "/plans/:planId/history",
-    schema: { params: planIdParamSchema, querystring: historyQuerySchema },
+    schema: { params: planIdParamSchema, querystring: historyQuerySchema, response: { 200: planCaseHistoryListResponseSchema } },
     handler: (request) => listPlanHistory(request.params.planId, request.query)
   });
 }

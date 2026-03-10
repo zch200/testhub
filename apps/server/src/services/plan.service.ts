@@ -1,5 +1,6 @@
 import { and, asc, desc, eq, sql } from "drizzle-orm";
 import type { createPlanSchema, updatePlanSchema } from "@testhub/shared";
+import type { PlanStatus } from "@testhub/shared";
 import type { z } from "zod";
 import { db } from "../db";
 import { planCases, plans, projects } from "../db/schema";
@@ -43,7 +44,7 @@ function mapPlan(row: typeof plans.$inferSelect) {
     description: row.description,
     startDate: row.startDate,
     endDate: row.endDate,
-    status: row.status,
+    status: row.status as PlanStatus,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt
   };

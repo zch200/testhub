@@ -191,8 +191,8 @@ export function listPlanCases(planId: number, query: ListPlanCasesQuery) {
   const items = rows.map((row) => ({
     ...mapPlanCase(row.planCase),
     caseTitle: row.caseTitle,
-    casePriority: row.casePriority,
-    caseType: row.caseType,
+    casePriority: row.casePriority as "P0" | "P1" | "P2" | "P3",
+    caseType: row.caseType as "functional" | "performance" | "api" | "ui" | "other",
     caseVersionNo: row.caseVersionNo
   }));
 

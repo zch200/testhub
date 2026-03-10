@@ -13,6 +13,8 @@ import type {
   createCaseSchema,
   updateCaseSchema,
   batchCreateCaseSchema,
+  batchUpdateCaseSchema,
+  batchDeleteCaseSchema,
   caseSchema,
   caseVersionSchema,
   createTagSchema,
@@ -25,6 +27,7 @@ import type {
   updatePlanCaseSchema,
   batchUpdatePlanCaseStatusSchema,
   planCaseSchema,
+  planCaseDetailSchema,
   planCaseStatusHistorySchema,
   planCaseRemarkSchema,
   createPlanCaseRemarkSchema
@@ -45,6 +48,8 @@ export type Directory = z.infer<typeof directorySchema>;
 export type CreateCaseInput = z.infer<typeof createCaseSchema>;
 export type UpdateCaseInput = z.infer<typeof updateCaseSchema>;
 export type BatchCreateCaseInput = z.infer<typeof batchCreateCaseSchema>;
+export type BatchUpdateCaseInput = z.infer<typeof batchUpdateCaseSchema>;
+export type BatchDeleteCaseInput = z.infer<typeof batchDeleteCaseSchema>;
 export type Case = z.infer<typeof caseSchema>;
 export type CaseVersion = z.infer<typeof caseVersionSchema>;
 
@@ -60,6 +65,7 @@ export type AddPlanCasesByDirectoryInput = z.infer<typeof addPlanCasesByDirector
 export type UpdatePlanCaseInput = z.infer<typeof updatePlanCaseSchema>;
 export type BatchUpdatePlanCaseStatusInput = z.infer<typeof batchUpdatePlanCaseStatusSchema>;
 export type PlanCase = z.infer<typeof planCaseSchema>;
+export type PlanCaseDetail = z.infer<typeof planCaseDetailSchema>;
 export type PlanCaseStatusHistory = z.infer<typeof planCaseStatusHistorySchema>;
 export type PlanCaseRemark = z.infer<typeof planCaseRemarkSchema>;
 export type CreatePlanCaseRemarkInput = z.infer<typeof createPlanCaseRemarkSchema>;

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { buildPaginatedResponseSchema, isoDateTimeSchema, pageQuerySchema } from "./common";
+import { casePriorities, caseTypes } from "./constants";
 import { executionStatuses, historyReasonTypes, historySources } from "./constants";
 
 export const createPlanCasesSchema = z.object({
@@ -73,6 +74,19 @@ export const planCaseRemarkListQuerySchema = pageQuerySchema.extend({
   sortBy: z.enum(["createdAt"]).default("createdAt")
 });
 
+export const planCaseDetailSchema = planCaseSchema.extend({
+  caseTitle: z.string(),
+  casePriority: z.enum(casePriorities),
+  caseType: z.enum(caseTypes),
+  caseVersionNo: z.number().int().positive()
+});
+
+export const addPlanCasesResponseSchema = z.object({
+  added: z.array(z.number().int()),
+  skipped: z.array(z.number().int())
+});
+
 export const planCaseListResponseSchema = buildPaginatedResponseSchema(planCaseSchema);
+export const planCaseDetailListResponseSchema = buildPaginatedResponseSchema(planCaseDetailSchema);
 export const planCaseHistoryListResponseSchema = buildPaginatedResponseSchema(planCaseStatusHistorySchema);
 export const planCaseRemarkListResponseSchema = buildPaginatedResponseSchema(planCaseRemarkSchema);

@@ -343,4 +343,248 @@ describe("Cases API", () => {
     });
     expect(getRes.statusCode).toBe(404);
   });
+
+  // ── 批量更新 ────────────────────────────────────────
+
+  it("PUT /libraries/:libraryId/cases/batch → 批量更新用例", async () => {
+    const c1 = await app
+      .inject({
+        method: "POST",
+        url: `/api/v1/libraries/${libraryId}/cases`,
+        headers: authHeaders(),
+        payload: { title: "批更1", contentType: "text", textContent: "内容1" },
+      })
+      .then((r) => r.json());
+
+    const c2 = await app
+      .inject({
+        method: "POST",
+        url: `/api/v1/libraries/${libraryId}/cases`,
+        headers: authHeaders(),
+        payload: { title: "批更2", contentType: "text", textContent: "内容2" },
+      })
+      .then((r) => r.json());
+
+    const res = await app.inject({
+      method: "PUT",
+      url: `/api/v1/libraries/${libraryId}/cases/batch`,
+      headers: authHeaders(),
+      payload: {
+        cases: [
+          { id: c1.id, title: "批更1-已更新", priority: "P0" },
+          { id: c2.id, title: "批更2-已更新" },
+        ],
+      },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body).toHaveLength(2);
+    expect(body[0].title).toBe("批更1-已更新");
+    expect(body[0].priority).toBe("P0");
+    expect(body[0].latestVersionNo).toBe(2);
+    expect(body[1].title).toBe("批更2-已更新");
+  });
+
+  it("PUT batch → 用例不属于该库返回 400", async () => {
+    const project2 = await createSeedProject(app, { name: "另一项目" });
+    const lib2 = await createSeedLibrary(app, project2.id, { name: "另一库", code: "OTHR" });
+
+    const c = await app
+      .inject({
+        method: "POST",
+        url: `/api/v1/libraries/${lib2.id}/cases`,
+        headers: authHeaders(),
+        payload: { title: "他库用例", contentType: "text", textContent: "内容" },
+      })
+      .then((r) => r.json());
+
+    const res = await app.inject({
+      method: "PUT",
+      url: `/api/v1/libraries/${libraryId}/cases/batch`,
+      headers: authHeaders(),
+      payload: { cases: [{ id: c.id, title: "非法更新" }] },
+    });
+    expect(res.statusCode).toBe(400);
+  });
+
+  // ── 批量删除 ────────────────────────────────────────
+
+  it("DELETE /libraries/:libraryId/cases/batch → 批量删除用例", async () => {
+    const c1 = await app
+      .inject({
+        method: "POST",
+        url: `/api/v1/libraries/${libraryId}/cases`,
+        headers: authHeaders(),
+        payload: { title: "批删1", contentType: "text", textContent: "内容" },
+      })
+      .then((r) => r.json());
+
+    const c2 = await app
+      .inject({
+        method: "POST",
+        url: `/api/v1/libraries/${libraryId}/cases`,
+        headers: authHeaders(),
+        payload: { title: "批删2", contentType: "text", textContent: "内容" },
+      })
+      .then((r) => r.json());
+
+    const res = await app.inject({
+      method: "DELETE",
+      url: `/api/v1/libraries/${libraryId}/cases/batch`,
+      headers: authHeaders(),
+      payload: { caseIds: [c1.id, c2.id] },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.deleted).toEqual([c1.id, c2.id]);
+    expect(body.skipped).toEqual([]);
+  });
+
+  it("DELETE batch → 跳过不存在的用例", async () => {
+    const res = await app.inject({
+      method: "DELETE",
+      url: `/api/v1/libraries/${libraryId}/cases/batch`,
+      headers: authHeaders(),
+      payload: { caseIds: [999999] },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.deleted).toEqual([]);
+    expect(body.skipped).toHaveLength(1);
+    expect(body.skipped[0].id).toBe(999999);
+  });
+
+  it("DELETE batch → 跳过被计划引用的用例", async () => {
+    const project = await createSeedProject(app, { name: "批删计划项目" });
+    const lib = await createSeedLibrary(app, project.id, { name: "批删计划库", code: "BDPL" });
+
+    const c = await app
+      .inject({
+        method: "POST",
+        url: `/api/v1/libraries/${lib.id}/cases`,
+        headers: authHeaders(),
+        payload: { title: "被引用用例", contentType: "text", textContent: "内容" },
+      })
+      .then((r) => r.json());
+
+    const plan = await app
+      .inject({
+        method: "POST",
+        url: `/api/v1/projects/${project.id}/plans`,
+        headers: authHeaders(),
+        payload: { name: "引用计划" },
+      })
+      .then((r) => r.json());
+
+    await app.inject({
+      method: "POST",
+      url: `/api/v1/plans/${plan.id}/cases`,
+      headers: authHeaders(),
+      payload: { caseIds: [c.id] },
+    });
+
+    const res = await app.inject({
+      method: "DELETE",
+      url: `/api/v1/libraries/${lib.id}/cases/batch`,
+      headers: authHeaders(),
+      payload: { caseIds: [c.id] },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.deleted).toEqual([]);
+    expect(body.skipped).toHaveLength(1);
+    expect(body.skipped[0].reason).toContain("计划");
+  });
+
+  // ── 多标签筛选 ──────────────────────────────────────
+
+  it("GET 按多标签 AND 筛选", async () => {
+    await app.inject({
+      method: "POST",
+      url: `/api/v1/libraries/${libraryId}/cases`,
+      headers: authHeaders(),
+      payload: {
+        title: "多标签AND用例",
+        contentType: "text",
+        textContent: "内容",
+        tags: ["layer:ui", "env:test"],
+      },
+    });
+
+    await app.inject({
+      method: "POST",
+      url: `/api/v1/libraries/${libraryId}/cases`,
+      headers: authHeaders(),
+      payload: {
+        title: "单标签用例",
+        contentType: "text",
+        textContent: "内容",
+        tags: ["layer:ui"],
+      },
+    });
+
+    const res = await app.inject({
+      method: "GET",
+      url: `/api/v1/libraries/${libraryId}/cases?tag=${encodeURIComponent("layer:ui,env:test")}&tagOp=and`,
+      headers: authHeaders(),
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.items.length).toBeGreaterThanOrEqual(1);
+    for (const c of body.items) {
+      expect(c.tags).toContain("layer:ui");
+      expect(c.tags).toContain("env:test");
+    }
+  });
+
+  it("GET 按多标签 OR 筛选", async () => {
+    await app.inject({
+      method: "POST",
+      url: `/api/v1/libraries/${libraryId}/cases`,
+      headers: authHeaders(),
+      payload: {
+        title: "OR标签A",
+        contentType: "text",
+        textContent: "内容",
+        tags: ["filter:alpha"],
+      },
+    });
+
+    await app.inject({
+      method: "POST",
+      url: `/api/v1/libraries/${libraryId}/cases`,
+      headers: authHeaders(),
+      payload: {
+        title: "OR标签B",
+        contentType: "text",
+        textContent: "内容",
+        tags: ["filter:beta"],
+      },
+    });
+
+    const res = await app.inject({
+      method: "GET",
+      url: `/api/v1/libraries/${libraryId}/cases?tag=${encodeURIComponent("filter:alpha,filter:beta")}&tagOp=or`,
+      headers: authHeaders(),
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.items.length).toBeGreaterThanOrEqual(2);
+    for (const c of body.items) {
+      expect(c.tags.some((t: string) => t === "filter:alpha" || t === "filter:beta")).toBe(true);
+    }
+  });
+
+  it("GET 单标签筛选保持向后兼容", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: `/api/v1/libraries/${libraryId}/cases?tag=${encodeURIComponent("layer:ui")}`,
+      headers: authHeaders(),
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    for (const c of body.items) {
+      expect(c.tags).toContain("layer:ui");
+    }
+  });
 });

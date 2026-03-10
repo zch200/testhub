@@ -79,7 +79,28 @@ export const caseListQuerySchema = pageQuerySchema.extend({
   priority: z.enum(casePriorities).optional(),
   type: z.enum(caseTypes).optional(),
   tag: z.string().optional(),
+  tagOp: z.enum(["and", "or"]).default("and"),
   keyword: z.string().optional()
+});
+
+export const batchUpdateCaseItemSchema = caseBaseSchema.partial().extend({
+  id: z.number().int().positive()
+});
+
+export const batchUpdateCaseSchema = z.object({
+  cases: z.array(batchUpdateCaseItemSchema).min(1, { message: "请至少选择一条用例" })
+});
+
+export const batchDeleteCaseSchema = z.object({
+  caseIds: z.array(z.number().int().positive()).min(1, { message: "请至少选择一条用例" })
+});
+
+export const batchDeleteCaseResponseSchema = z.object({
+  deleted: z.array(z.number().int().positive()),
+  skipped: z.array(z.object({
+    id: z.number().int().positive(),
+    reason: z.string()
+  }))
 });
 
 export const caseListResponseSchema = buildPaginatedResponseSchema(caseSchema);

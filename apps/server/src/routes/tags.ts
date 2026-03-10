@@ -1,4 +1,4 @@
-import { createTagSchema, idParamSchema, tagListQuerySchema } from "@testhub/shared";
+import { createTagSchema, idParamSchema, tagListQuerySchema, tagListResponseSchema, tagSchema } from "@testhub/shared";
 import { z } from "zod";
 import type { FastifyInstance } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
@@ -14,14 +14,14 @@ export async function registerTagRoutes(app: FastifyInstance): Promise<void> {
   server.route({
     method: "GET",
     url: "/libraries/:libraryId/tags",
-    schema: { params: libraryIdParamSchema, querystring: tagListQuerySchema },
+    schema: { params: libraryIdParamSchema, querystring: tagListQuerySchema, response: { 200: tagListResponseSchema } },
     handler: (request) => listTags(request.params.libraryId, request.query)
   });
 
   server.route({
     method: "POST",
     url: "/libraries/:libraryId/tags",
-    schema: { params: libraryIdParamSchema, body: createTagSchema },
+    schema: { params: libraryIdParamSchema, body: createTagSchema, response: { 200: tagSchema } },
     handler: (request) => createTag(request.params.libraryId, request.body)
   });
 

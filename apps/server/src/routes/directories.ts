@@ -1,4 +1,4 @@
-import { createDirectorySchema, idParamSchema, updateDirectorySchema } from "@testhub/shared";
+import { createDirectorySchema, directorySchema, directoryTreeSchema, idParamSchema, updateDirectorySchema } from "@testhub/shared";
 import { z } from "zod";
 import type { FastifyInstance } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
@@ -18,28 +18,28 @@ export async function registerDirectoryRoutes(app: FastifyInstance): Promise<voi
   server.route({
     method: "GET",
     url: "/libraries/:libraryId/directories",
-    schema: { params: libraryIdParamSchema },
+    schema: { params: libraryIdParamSchema, response: { 200: z.array(directoryTreeSchema) } },
     handler: (request) => listDirectoryTree(request.params.libraryId)
   });
 
   server.route({
     method: "POST",
     url: "/libraries/:libraryId/directories",
-    schema: { params: libraryIdParamSchema, body: createDirectorySchema },
+    schema: { params: libraryIdParamSchema, body: createDirectorySchema, response: { 200: directorySchema } },
     handler: (request) => createDirectory(request.params.libraryId, request.body)
   });
 
   server.route({
     method: "GET",
     url: "/directories/:id",
-    schema: { params: idParamSchema },
+    schema: { params: idParamSchema, response: { 200: directorySchema } },
     handler: (request) => getDirectoryById(request.params.id)
   });
 
   server.route({
     method: "PUT",
     url: "/directories/:id",
-    schema: { params: idParamSchema, body: updateDirectorySchema },
+    schema: { params: idParamSchema, body: updateDirectorySchema, response: { 200: directorySchema } },
     handler: (request) => updateDirectory(request.params.id, request.body)
   });
 

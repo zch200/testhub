@@ -112,9 +112,10 @@ pnpm test:watch           # 监听模式运行测试
 
 ### 后端
 - 路由文件只做参数解析和响应，业务逻辑放 services/
-- 所有路由注册 Zod schema 用于 Swagger 文档生成
+- 所有路由注册 Zod schema 用于 Swagger 文档生成（含 response schema）
 - 错误处理统一返回 `{ error: string }` 格式
 - 删除操作做级联删除（如删除项目时级联删除其下所有库、用例、计划）
+- 修改后端功能（新增/变更 API、service 逻辑）时，必须同步迭代对应的单元测试：schema 校验测试（`packages/shared/src/__tests__/`）和 API 集成测试（`apps/server/src/__tests__/`）
 
 ### 前端
 - 数据请求统一通过 TanStack Query hooks，不直接 fetch
