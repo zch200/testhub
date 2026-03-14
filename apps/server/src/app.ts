@@ -106,6 +106,11 @@ export function buildApp(options?: BuildAppOptions) {
       root: publicDir,
       index: false
     });
+
+    // Serve SPA index.html for root path (fixes #4: static plugin can't serve directories)
+    app.get("/", (_request, reply) => {
+      return reply.sendFile("index.html");
+    });
   }
 
   app.setErrorHandler((error: unknown, _request, reply) => {

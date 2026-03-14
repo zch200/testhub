@@ -33,6 +33,7 @@ export default function App() {
           <Route path="/projects/:projectId/plans" element={<PlansPage />} />
           <Route path="/projects/:projectId/plans/:planId" element={<PlanDetailPage />} />
         </Route>
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </ProjectProvider>
   );
