@@ -1,6 +1,6 @@
 {
   "name": "testhub-app",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Local-first test management tool — lightweight alternative to cloud testing platforms",
   "bin": {
     "testhub": "./dist/bin.mjs"
